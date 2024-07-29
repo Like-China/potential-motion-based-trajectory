@@ -13,11 +13,9 @@ public class Location {
         this.longititude = longititude;
         this.latitude = latitude;
         this.timestamp = timestamp;
-        // double[] xy = this.MillierConvertion(latitude, longititude);
-        // this.x = xy[0];
-        // this.y = xy[1];
-        this.x = longititude;
-        this.y = latitude;
+        double[] xy = this.MillierConvertion(latitude, longititude);
+        this.x = xy[0];
+        this.y = xy[1];
     }
 
     @Override

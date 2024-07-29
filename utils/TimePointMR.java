@@ -52,13 +52,13 @@ public class TimePointMR {
 
     // get a given number of point samples within this time-point motion ranges with
     // uniform sampling
-    private List<Point> getUniformSamplingPoints(int numSamples) {
+    public ArrayList<Point> getUniformSamplingPoints(int numSamples) {
         double theta = Math.atan2(By - Ay, Bx - Ax);
         double phi = Math.acos((r1 * r1 + distance * distance - r2 * r2) / (2 * r1 * distance));
         double intersectionAngle1 = theta + phi;
         double intersectionAngle2 = theta - phi;
         double angleStep = (intersectionAngle2 - intersectionAngle1) / numSamples;
-        List<Point> samples = new ArrayList<>();
+        ArrayList<Point> samples = new ArrayList<>();
         for (int i = 0; i < numSamples; i++) {
             double angle = intersectionAngle1 + i * angleStep;
             double radius = r1 + (r2 - r1) * i / numSamples;

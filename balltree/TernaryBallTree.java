@@ -2,14 +2,13 @@ package balltree;
 
 import java.util.*;
 
-import utils.ContactPair;
-import utils.Data;
+import utils.TimeIntervalMR;
 
 public class TernaryBallTree extends BallTree {
 
     public double repartirionRatio = -1;
 
-    public TernaryBallTree(int minLeafNB, ArrayList<Data> db, double repartirionRatio) {
+    public TernaryBallTree(int minLeafNB, ArrayList<TimeIntervalMR> db, double repartirionRatio) {
         super(minLeafNB, db);
         this.repartirionRatio = repartirionRatio;
     }
@@ -193,16 +192,16 @@ public class TernaryBallTree extends BallTree {
         }
     }
 
-    public ArrayList<ContactPair> searchRange(TernaryBallNode node, Data qdata) {
-        ArrayList<ContactPair> res = new ArrayList<>();
+    public ArrayList<TimeIntervalMR> searchRange(TernaryBallNode node, TimeIntervalMR qdata) {
+        ArrayList<TimeIntervalMR> res = new ArrayList<>();
         this.rangeSearch(node, qdata, res);
         return res;
     }
 
-    public void rangeSearch(TernaryBallNode node, Data qdata, ArrayList<ContactPair> res) {
+    public void rangeSearch(TernaryBallNode node, TimeIntervalMR qdata, ArrayList<TimeIntervalMR> res) {
         searchCount++;
-        double[] target = qdata.values;
-        double range = qdata.radius;
+        double[] target = qdata.center;
+        double range = qdata.a;
         double nodeDist = this.getDistance(target, node.pivot) - node.radius - range;
         if (nodeDist > 0) {
             return;
@@ -231,7 +230,7 @@ public class TernaryBallTree extends BallTree {
             for (int i = node.idxStart; i < node.idxEnd + 1; i++) {
                 double dist = this.getDistance(target, input.get(indexes[i]));
                 if (dist <= range + dbRadius.get(indexes[i])) {
-                    res.add(new ContactPair(qdata, db.get(indexes[i]), dist));
+                    res.add(db.get(indexes[i]));
                 }
             }
         } else {

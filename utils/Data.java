@@ -9,11 +9,11 @@ import mtree.DistanceFunctions.EuclideanCoordinate;
  */
 public class Data implements EuclideanCoordinate, Comparable<Data> {
 
-	public Ellipse bead = null;
+	public TimeIntervalMR bead = null;
 	public double[] values;
 	public double radius;
 
-	public Data(Ellipse bead) {
+	public Data(TimeIntervalMR bead) {
 		this.bead = bead;
 		this.values = bead.center;
 		this.radius = bead.a;

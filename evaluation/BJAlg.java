@@ -3,13 +3,11 @@ package evaluation;
 import java.util.ArrayList;
 import balltree.TernaryBallNode;
 import balltree.TernaryBallTree;
-import utils.ContactPair;
-import utils.Data;
+import utils.TimeIntervalMR;
 
 public class BJAlg {
-    // query, database set at each timestamp, we update them at each timestampe
-    public ArrayList<Data> queries = new ArrayList<>();
-    public ArrayList<Data> db = new ArrayList<>();
+    // time-interval motion ranges for all moving objects in
+    public ArrayList<TimeIntervalMR> db = new ArrayList<>();
     // index construction time / filtering time
     public long cTime = 0;
     public long fTime = 0;
@@ -18,12 +16,25 @@ public class BJAlg {
     // the repartition threshold
     public double repartirionRatio = 0;
     public int minLeafNB = 0;
+    // tree structure
+    TernaryBallTree bt;
+    TernaryBallNode root;
 
-    public BJAlg(ArrayList<Data> queries, ArrayList<Data> db, double repartirionRatio, int minLeafNB) {
-        this.queries = queries;
+    public BJAlg(ArrayList<TimeIntervalMR> db, double repartirionRatio, int minLeafNB) {
         this.db = db;
         this.repartirionRatio = repartirionRatio;
         this.minLeafNB = minLeafNB;
+        construct();
+    }
+
+    public TernaryBallNode construct() {
+        long t1 = System.currentTimeMillis();
+        bt = new TernaryBallTree(minLeafNB, db, repartirionRatio);
+        root = bt.buildBallTree();
+        // root.levelOrder(root);
+        long t2 = System.currentTimeMillis();
+        cTime = t2 - t1;
+        return root;
     }
 
     /**
@@ -31,24 +42,14 @@ public class BJAlg {
      * 
      * @return all candidate pairs
      */
-    public ArrayList<ContactPair> getCandidate() {
-        long t1 = System.currentTimeMillis();
-        TernaryBallTree bt = new TernaryBallTree(minLeafNB, db, repartirionRatio);
-        TernaryBallNode root = bt.buildBallTree();
-        // root.levelOrder(root);
-        long t2 = System.currentTimeMillis();
-        cTime = t2 - t1;
+    public ArrayList<TimeIntervalMR> getCandidate(TimeIntervalMR q) {
 
-        ArrayList<ContactPair> candidates = new ArrayList<>();
-        t1 = System.currentTimeMillis();
-        for (Data qdata : queries) {
-            ArrayList<ContactPair> ballRangeResult = bt.searchRange(root, qdata);
-            candidates.addAll(ballRangeResult);
-        }
+        long t1 = System.currentTimeMillis();
+        ArrayList<TimeIntervalMR> candidates = bt.searchRange(root, q);
+        long t2 = System.currentTimeMillis();
         searchCount = bt.searchCount;
         t2 = System.currentTimeMillis();
-        fTime = t2 - t1;
+        fTime += t2 - t1;
         return candidates;
     }
-
 }

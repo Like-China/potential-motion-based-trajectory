@@ -2,13 +2,12 @@ package balltree;
 
 import java.util.*;
 
-import utils.ContactPair;
-import utils.Data;
+import utils.TimeIntervalMR;
 
 public class BallTree {
     public int minLeafNB;
     public int pointNB;
-    public ArrayList<Data> db = new ArrayList<>();
+    public ArrayList<TimeIntervalMR> db = new ArrayList<>();
     public ArrayList<double[]> input = new ArrayList<>();
     public ArrayList<Double> dbRadius = new ArrayList<>();
     public int[] indexes = null;
@@ -17,14 +16,14 @@ public class BallTree {
     // the number of node access when conduct queries
     public int searchCount = 0;
 
-    public BallTree(int minLeafNB, ArrayList<Data> db) {
+    public BallTree(int minLeafNB, ArrayList<TimeIntervalMR> db) {
         this.minLeafNB = minLeafNB;
         this.db = db;
         this.pointNB = db.size();
         this.indexes = new int[pointNB];
-        for (Data data : db) {
-            this.input.add(data.values);
-            this.dbRadius.add(data.radius);
+        for (TimeIntervalMR data : db) {
+            this.input.add(data.center);
+            this.dbRadius.add(data.a);
         }
     }
 
@@ -141,17 +140,17 @@ public class BallTree {
         node.rightNode = new BallNode(node.id * 2 + 1, split, node.idxEnd, pivotR, radiusR);
     }
 
-    public ArrayList<ContactPair> searchRange(BallNode node,
-            Data qdata) {
-        ArrayList<ContactPair> res = new ArrayList<>();
+    public ArrayList<TimeIntervalMR> searchRange(BallNode node,
+            TimeIntervalMR qdata) {
+        ArrayList<TimeIntervalMR> res = new ArrayList<>();
         this.rangeSearch(node, qdata, res);
         return res;
     }
 
-    public void rangeSearch(BallNode node, Data qdata, ArrayList<ContactPair> res) {
+    public void rangeSearch(BallNode node, TimeIntervalMR qdata, ArrayList<TimeIntervalMR> res) {
         searchCount++;
-        double[] target = qdata.values;
-        double range = qdata.radius;
+        double[] target = qdata.center;
+        double range = qdata.a;
         double nodeDist = this.getDistance(target, node.pivot) - node.radius - range;
         if (nodeDist > 0) {
             return;
@@ -173,7 +172,7 @@ public class BallTree {
             for (int i = node.idxStart; i < node.idxEnd + 1; i++) {
                 double dist = this.getDistance(target, input.get(indexes[i]));
                 if (dist <= range + dbRadius.get(indexes[i])) {
-                    res.add(new ContactPair(qdata, db.get(indexes[i]), dist));
+                    res.add(db.get(indexes[i]));
                 }
             }
         } else {
