@@ -41,11 +41,11 @@ public class MJAlg {
      * 
      * @return all candidate pairs
      */
-    public ArrayList<ContactPair> getCandidate(int idx, Data qdata) {
+    public ArrayList<TimeIntervalMR> getCandidate(int idx, Data qdata) {
         MTreeClass mtree = MTreeAtEachTimestamp.get(idx);
         long t1 = System.currentTimeMillis();
         MTreeClass.Query query = mtree.getNearestByRange(qdata, qdata.radius);
-        ArrayList<ContactPair> candidates = query.rangeQuery();
+        ArrayList<TimeIntervalMR> candidates = query.rangeQuery();
         long t2 = System.currentTimeMillis();
         fTime += (t2 - t1);
         return candidates;

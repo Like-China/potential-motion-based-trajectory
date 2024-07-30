@@ -1,46 +1,62 @@
 package evaluation;
 
 import java.util.ArrayList;
-import utils.ContactPair;
-import utils.Data;
+import utils.TimeIntervalMR;
+import utils.Trajectory;
 
 public class BFAlg {
-    // query, database set at each timestamp, we update them at each timestampe
-    public ArrayList<Data> queries = new ArrayList<>();
-    public ArrayList<Data> db = new ArrayList<>();
     public long fTime = 0;
-
-    public BFAlg(ArrayList<Data> queries, ArrayList<Data> db) {
-        this.queries = queries;
-        this.db = db;
-    }
 
     /**
      * conduct brute-force method to obtain all candidate pairs
      * 
      * @return all candidate pairs
      */
-    public ArrayList<ContactPair> getCandidate() {
+    public int getCandidate(ArrayList<Trajectory> queries,
+            ArrayList<Trajectory> db) {
         long t1 = System.currentTimeMillis();
-        ArrayList<ContactPair> candidates = new ArrayList<>();
-        // bruteforce
-        for (Data qdata : queries) {
-            for (Data dbdata : db) {
-                // pre-checking
-                if (Math.abs(qdata.get(0) - dbdata.get(0)) > (qdata.bead.a + dbdata.bead.a)
-                        && Math.abs(qdata.get(1) - dbdata.get(1)) > (qdata.bead.b + dbdata.bead.b)) {
-                    continue;
-                }
-                double centerDist = Math
-                        .sqrt(Math.pow(qdata.get(0) - dbdata.get(0), 2) + Math.pow(qdata.get(1) - dbdata.get(1), 2));
-                if (centerDist <= (qdata.radius + dbdata.radius)) {
-                    candidates.add(new ContactPair(qdata, dbdata, centerDist));
+        int matchNB = 0;
+        ArrayList<TimeIntervalMR> candidates = new ArrayList<>();
+        for (Trajectory qTrj : queries) {
+            for (Trajectory dbTrj : db) {
+                for (int ts = 0; ts < Settings.tsNB; ts++) {
+                    TimeIntervalMR mr1 = qTrj.EllipseSeq.get(ts);
+                    TimeIntervalMR mr2 = dbTrj.EllipseSeq.get(ts);
+                    double[] A = mr1.center;
+                    double[] B = mr2.center;
+                    double dist = Math.sqrt(Math.pow(A[0] - B[0], 2) + Math.pow(A[1] - B[1], 2));
+                    if (dist <= mr1.a + mr2.a) {
+                        matchNB++;
+                    }
                 }
             }
         }
         long t2 = System.currentTimeMillis();
         fTime = t2 - t1;
-        return candidates;
+        return matchNB;
+    }
+
+    public int getAll(ArrayList<Trajectory> queries,
+            ArrayList<Trajectory> db, double simThreshold) {
+        long t1 = System.currentTimeMillis();
+        int matchNB = 0;
+        int i = 0;
+        ArrayList<TimeIntervalMR> candidates = new ArrayList<>();
+        for (Trajectory qTrj : queries) {
+            i++;
+            if (i % 1000 == 0) {
+                System.out.println(i + "/" + queries.size());
+            }
+            for (Trajectory dbTrj : db) {
+                double sim = qTrj.simTo(dbTrj);
+                if (sim > simThreshold) {
+                    matchNB++;
+                }
+            }
+        }
+        long t2 = System.currentTimeMillis();
+        fTime = t2 - t1;
+        return matchNB;
     }
 
 }

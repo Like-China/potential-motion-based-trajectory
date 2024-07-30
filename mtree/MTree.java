@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import mtree.SplitFunction.SplitResult;
-import utils.ContactPair;
+import utils.TimeIntervalMR;
 import utils.Data;
 
 /**
@@ -92,9 +92,9 @@ public class MTree {
 		}
 
 		private PriorityQueue<ItemWithDistances<Node>> pendingQueue = new PriorityQueue<ItemWithDistances<Node>>();
-		private ArrayList<ContactPair> rangeRes = new ArrayList<>();
+		private ArrayList<TimeIntervalMR> rangeRes = new ArrayList<>();
 
-		public ArrayList<ContactPair> rangeQuery() {
+		public ArrayList<TimeIntervalMR> rangeQuery() {
 			if (MTree.this.root == null) {
 				return rangeRes;
 			}
@@ -113,8 +113,7 @@ public class MTree {
 						double childMinDistance = Math.max(childDistance, 0.0);
 						if (childMinDistance <= Query.this.range + child.radius) {
 							if (child instanceof MTree.Entry) {
-								Entry entry = (Entry) child;
-								rangeRes.add(new ContactPair(Query.this.Data, entry.Data, childDistance));
+								rangeRes.add(child.Data.bead);
 							} else {
 								Node childNode = (Node) child;
 								pendingQueue

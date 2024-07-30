@@ -1,8 +1,8 @@
 package utils;
 
 public class Point {
-    double x;
-    double y;
+    public double x;
+    public double y;
 
     Point(double x, double y) {
         this.x = x;

@@ -4,13 +4,13 @@ public class Settings {
         // public static String data = "Geolife";
         public static String data = "Porto";
         // shuffle data
-        public static boolean isShuffle = true;
+        public static boolean isShuffle = false;
         // the number of processed moving objects
         public static int objectNB = (data == "Geolife") ? 2000 : 10000;
         // the number of partitions of a time-interval
-        public static int intervalNum = 5;
+        public static int intervalNum = 3;
         // the default sampling number for approxiamte refinement
-        public static int sampleNum = 20;
+        public static int sampleNum = 10;
         public static int tsNB = 20;
         // the node size in the balltree
         public static int minLeafNB = 20;

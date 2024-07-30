@@ -2,7 +2,6 @@ package evaluation;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import utils.ContactPair;
 import utils.Utils;
 
 // evaulate the algorithm performance with varied parameters: the maximum speed, cardinality, similarity threshold, etc.

@@ -40,6 +40,15 @@ public class Trajectory {
             maxSpeed = maxSpeed > speed ? maxSpeed : speed;
         }
         // generate ellipse and data
+        maxSpeed *= 1.1;
+        if (maxSpeed >= 100) {
+            // System.out.println("Exceed Max Speed: " + maxSpeed);
+            return;
+        }
+        if (minSpeed <= 0) {
+            // System.out.println("Low Min Speed: " + minSpeed);
+            return;
+        }
         for (int i = 0; i < this.sampleSize - 1; i++) {
             Location cur = locationSeq.get(i);
             Location next = locationSeq.get(i + 1);

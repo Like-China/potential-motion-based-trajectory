@@ -3,6 +3,8 @@ package utils;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import evaluation.Settings;
+
 public class TimeIntervalMR {
 
     public Location curLocation;
@@ -19,7 +21,7 @@ public class TimeIntervalMR {
     public double angle;
     double[] MBR;
     // potential POI in this motion range
-    ArrayList<ArrayList<Point>> POIs = new ArrayList<>();
+    public ArrayList<Point[]> POIs = new ArrayList<>();
 
     public TimeIntervalMR(Location curLocation, Location nextLocation, double maxSpeed) {
         assert curLocation.objectID == nextLocation.objectID;
@@ -29,9 +31,10 @@ public class TimeIntervalMR {
         this.maxSpeed = maxSpeed;
         this.angle = Math.atan2(nextLocation.y - curLocation.y, nextLocation.x - curLocation.x);
         location2ellipse();
+        generatePOI(Settings.sampleNum, Settings.intervalNum);
     }
 
-    public ArrayList<ArrayList<Point>> generatePOI(int sampleNum, int intervalNum) {
+    public ArrayList<Point[]> generatePOI(int sampleNum, int intervalNum) {
         for (int i = 1; i < intervalNum - 1; i++) {
             // get time-point ranges of the two objects at several time points
             double Ax = curLocation.x;
@@ -40,9 +43,12 @@ public class TimeIntervalMR {
             double By = nextLocation.y;
             double r1 = maxSpeed * (nextLocation.timestamp - curLocation.timestamp) * i / intervalNum;
             double r2 = maxSpeed * (nextLocation.timestamp - curLocation.timestamp) * (intervalNum - i) / intervalNum;
+            if (r1 == 0) {
+                System.out.println(maxSpeed);
+            }
             TimePointMR MR = new TimePointMR(Ax, Ay, Bx, By, r1, r2);
             // calculate the intersection simlarity using the uniform sampling methods
-            ArrayList<Point> pointOfThis = MR.getUniformSamplingPoints(sampleNum);
+            Point[] pointOfThis = MR.getUniformSamplingPoints(sampleNum);
             POIs.add(pointOfThis);
         }
         return POIs;
@@ -54,9 +60,9 @@ public class TimeIntervalMR {
         center[1] = (curLocation.y + nextLocation.y) / 2;
         speed = curLocation.distTo(nextLocation) / (nextLocation.timestamp - curLocation.timestamp);
         a = maxSpeed * (nextLocation.timestamp - curLocation.timestamp) / 2;
-        b = Math.sqrt(a * a
-                - (Math.pow(curLocation.x - nextLocation.x, 2) + Math.pow(curLocation.y - nextLocation.y, 2)) / 4);
-        // System.out.println(a + "/" + speed + "/" + maxSpeed);
+        b = Math.sqrt(4 * a * a
+                - (Math.pow(curLocation.x - nextLocation.x, 2) + Math.pow(curLocation.y - nextLocation.y, 2))) / 2;
+        // System.out.println(a + "/" + b + "/" + maxSpeed + "/" + speed);
         assert a >= 0;
         assert b >= 0;
         assert a >= b;
@@ -112,25 +118,4 @@ public class TimeIntervalMR {
         return new double[] { minX, maxX, minY, maxY };
     }
 
-    // calculate intersection area to another ellipse's MBR
-    public double interAreaTo(TimeIntervalMR that) {
-        if (this.MBR == null) {
-            this.MBR = this.getEllipseMBR();
-        }
-        if (that.MBR == null) {
-            that.MBR = that.getEllipseMBR();
-        }
-        // Calculate the coordinates of the intersection rectangle
-        double x1 = Math.max(this.MBR[0], that.MBR[0]);
-        double y1 = Math.max(this.MBR[2], that.MBR[2]);
-        double x2 = Math.min(this.MBR[1], that.MBR[1]);
-        double y2 = Math.min(this.MBR[3], that.MBR[3]);
-        // Calculate the area of the intersection rectangle
-        double intersectionArea = (x2 - x1) * (y2 - y1);
-        // Check if there is no intersection
-        if (intersectionArea < 0) {
-            intersectionArea = 0;
-        }
-        return intersectionArea;
-    }
 }
