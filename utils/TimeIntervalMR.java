@@ -32,10 +32,11 @@ public class TimeIntervalMR {
         this.angle = Math.atan2(nextLocation.y - curLocation.y, nextLocation.x - curLocation.x);
         location2ellipse();
         generatePOI(Settings.sampleNum, Settings.intervalNum);
+
     }
 
     public ArrayList<Point[]> generatePOI(int sampleNum, int intervalNum) {
-        for (int i = 1; i < intervalNum - 1; i++) {
+        for (int i = 1; i < intervalNum + 2 - 1; i++) {
             // get time-point ranges of the two objects at several time points
             double Ax = curLocation.x;
             double Ay = curLocation.y;
@@ -49,6 +50,11 @@ public class TimeIntervalMR {
             TimePointMR MR = new TimePointMR(Ax, Ay, Bx, By, r1, r2);
             // calculate the intersection simlarity using the uniform sampling methods
             Point[] pointOfThis = MR.getUniformSamplingPoints(sampleNum);
+            for (Point p : pointOfThis) {
+                double d1 = Math.sqrt((p.x - Ax) * (p.x - Ax) + (p.y - Ay) * (p.y - Ay));
+                double d2 = Math.sqrt((p.x - Bx) * (p.x - Bx) + (p.y - By) * (p.y - By));
+                assert d1 + d2 < 2 * a;
+            }
             POIs.add(pointOfThis);
         }
         return POIs;

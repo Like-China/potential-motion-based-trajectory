@@ -77,6 +77,9 @@ public class Loader {
                         int ts = Integer.parseInt(hms[0]) * 3600 + Integer.parseInt(hms[1]) * 60
                                 + Integer.parseInt(hms[2]);
                         traj.add(new Location(id, real_lon, real_lat, ts));
+                        if (traj.size() >= Settings.tsNB) {
+                            break;
+                        }
                     }
                 }
                 Trajectory newTrj = new Trajectory(id, traj);
@@ -127,6 +130,9 @@ public class Loader {
                     double real_lon = Double.parseDouble(lonlat[0]);
                     double real_lat = Double.parseDouble(lonlat[1]);
                     traj.add(new Location(id, real_lon, real_lat, ts));
+                    if (traj.size() >= Settings.tsNB) {
+                        break;
+                    }
                     ts += 15;
                 }
                 Trajectory newTrj = new Trajectory(id, traj);
@@ -140,7 +146,6 @@ public class Loader {
             // TODO: handle exception
             e.printStackTrace();
         }
-
         System.out.printf("Trajectory Size: %d \n", trjs.size());
     }
 
@@ -159,11 +164,11 @@ public class Loader {
         if (Settings.isShuffle)
             Collections.shuffle(trjs);
         for (int i = 0; i < 2 * querySize; i++) {
-            Trajectory data = trjs.get(i);
+            Trajectory trj = trjs.get(i);
             if (i < querySize) {
-                queries.add(data);
+                queries.add(trj);
             } else {
-                db.add(data);
+                db.add(trj);
             }
         }
     }

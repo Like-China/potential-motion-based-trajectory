@@ -2,8 +2,6 @@ package evaluation;
 
 import java.util.*;
 
-import balltree.TernaryBallNode;
-import balltree.TernaryBallTree;
 import mtree.MTreeClass;
 import utils.*;
 
@@ -24,7 +22,7 @@ public class MJAlg {
     // construct indexes at all timestamp
     public void constructMulti(ArrayList<Trajectory> db) {
         long t1 = System.currentTimeMillis();
-        for (int ts = 0; ts < tsNB; ts++) {
+        for (int ts = 0; ts < tsNB - 1; ts++) {
             MTreeClass mtree = new MTreeClass();
             for (Trajectory dbTrj : db) {
                 Data data = dbTrj.DataSeq.get(ts);
@@ -41,7 +39,7 @@ public class MJAlg {
      * 
      * @return all candidate pairs
      */
-    public ArrayList<TimeIntervalMR> getCandidate(int idx, Data qdata) {
+    public ArrayList<TimeIntervalMR> getIntersection(int idx, Data qdata) {
         MTreeClass mtree = MTreeAtEachTimestamp.get(idx);
         long t1 = System.currentTimeMillis();
         MTreeClass.Query query = mtree.getNearestByRange(qdata, qdata.radius);

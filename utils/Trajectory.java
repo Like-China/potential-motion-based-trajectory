@@ -1,6 +1,7 @@
 package utils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import evaluation.Settings;
 
@@ -13,6 +14,8 @@ public class Trajectory {
     public ArrayList<Location> locationSeq;
     public ArrayList<TimeIntervalMR> EllipseSeq;
     public ArrayList<Data> DataSeq;
+    // the intersected MR at each timestamp
+    public HashMap<Integer, ArrayList<TimeIntervalMR>> ts2candidate = new HashMap<>();
 
     public Trajectory(int objID, ArrayList<Location> locationSeq) {
         EllipseSeq = new ArrayList<>();
@@ -40,7 +43,7 @@ public class Trajectory {
             maxSpeed = maxSpeed > speed ? maxSpeed : speed;
         }
         // generate ellipse and data
-        maxSpeed *= 1.1;
+        maxSpeed *= 1.01;
         if (maxSpeed >= 100) {
             // System.out.println("Exceed Max Speed: " + maxSpeed);
             return;
@@ -63,7 +66,7 @@ public class Trajectory {
 
     // self check
     public boolean isDelete() {
-        if (this.sampleSize <= Settings.tsNB) {
+        if (this.sampleSize < Settings.tsNB) {
             return true;
         }
         // remove static or abnormal objects
@@ -87,15 +90,74 @@ public class Trajectory {
     }
 
     // the trajectory similairity from this to another
-    public double simTo(Trajectory that) {
-        int trjLen = (this.sampleSize > that.sampleSize) ? that.sampleSize : this.sampleSize;
+    public double sampleLocsimTo(Trajectory that) {
+        assert this.sampleSize == Settings.tsNB;
         double similarity = 0;
+        for (int i = 0; i < Settings.tsNB; i++) {
+            Location thisLocation = this.locationSeq.get(i);
+            Location thatLocation = that.locationSeq.get(i);
+            double dist = thisLocation.distTo(thatLocation);
+            similarity += Math.exp(-dist);
+        }
+        return similarity / Settings.tsNB;
+    }
+
+    // the trajectory similairity from this to another
+    public double simTo(Trajectory that) {
+        int trjLen = Settings.tsNB;
+        double similarity = 0;
+        // sample location similarity
         for (int i = 0; i < trjLen; i++) {
             Location thisLocation = this.locationSeq.get(i);
             Location thatLocation = that.locationSeq.get(i);
             double dist = thisLocation.distTo(thatLocation);
             similarity += Math.exp(-dist);
         }
-        return similarity / trjLen;
+        // Motion ranges' POI similarity
+        for (int i = 0; i < trjLen - 1; i++) {
+            TimeIntervalMR thisMR = this.EllipseSeq.get(i);
+            TimeIntervalMR thatMR = that.EllipseSeq.get(i);
+            ArrayList<Point[]> thisPoints = thisMR.POIs;
+            ArrayList<Point[]> thatPoints = thatMR.POIs;
+            assert thisPoints.size() == Settings.intervalNum;
+            for (int j = 0; j < thisPoints.size(); j++) {
+                double minDist = Double.MAX_VALUE;
+                for (Point A : thisPoints.get(j)) {
+                    for (Point B : thatPoints.get(j)) {
+                        double dist = Math.sqrt(Math.pow(A.x - B.x, 2) + Math.pow(A.x - B.x, 2));
+                        minDist = minDist > dist ? dist : minDist;
+                    }
+                }
+                similarity += Math.exp(-minDist);
+            }
+        }
+        return similarity / (trjLen + (trjLen - 1) * Settings.intervalNum);
+    }
+
+    public double upperBoundTo(Trajectory that) {
+        int trjLen = Settings.tsNB;
+        double similarity = 0;
+        // sample location similarity
+        for (int i = 0; i < trjLen; i++) {
+            Location thisLocation = this.locationSeq.get(i);
+            Location thatLocation = that.locationSeq.get(i);
+            double dist = thisLocation.distTo(thatLocation);
+            similarity += Math.exp(-dist);
+        }
+        // Motion ranges' POI similarity
+        for (int ts = 0; ts < trjLen - 1; ts++) {
+            TimeIntervalMR thisMR = this.EllipseSeq.get(ts);
+            TimeIntervalMR thatMR = that.EllipseSeq.get(ts);
+            double dist;
+            if (ts2candidate.get(ts).contains(thatMR)) {
+                dist = 0;
+            } else {
+                dist = Math.sqrt(Math.pow(thisMR.center[0] - thatMR.center[0], 2)
+                        + Math.pow(thisMR.center[1] - thatMR.center[1], 2)) - thisMR.a - thatMR.a;
+                assert dist > 0;
+            }
+            similarity += (Math.exp(-dist) * Settings.intervalNum);
+        }
+        return similarity / (trjLen + (trjLen - 1) * Settings.intervalNum);
     }
 }

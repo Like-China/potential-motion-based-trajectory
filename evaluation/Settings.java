@@ -6,7 +6,7 @@ public class Settings {
         // shuffle data
         public static boolean isShuffle = false;
         // the number of processed moving objects
-        public static int objectNB = (data == "Geolife") ? 2000 : 10000;
+        public static int objectNB = (data == "Geolife") ? 2000 : 1000;
         // the number of partitions of a time-interval
         public static int intervalNum = 3;
         // the default sampling number for approxiamte refinement
