@@ -1,14 +1,7 @@
 package evaluation;
 
-import java.util.ArrayList;
-import java.util.Collections;
-
-import utils.Data;
-import utils.TimeIntervalMR;
-import utils.Location;
-import utils.Trajectory;
-
-import java.util.List;
+import java.util.*;
+import utils.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;

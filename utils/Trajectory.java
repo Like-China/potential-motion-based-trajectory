@@ -2,6 +2,8 @@ package utils;
 
 import java.util.ArrayList;
 
+import evaluation.Settings;
+
 public class Trajectory {
 
     public int objectID;
@@ -52,10 +54,9 @@ public class Trajectory {
 
     // self check
     public boolean isDelete() {
-        if (this.sampleSize <= 10) {
+        if (this.sampleSize <= Settings.tsNB) {
             return true;
         }
-
         // remove static or abnormal objects
         // a == 0 the timestampe does not change
         if (maxSpeed >= 100) {

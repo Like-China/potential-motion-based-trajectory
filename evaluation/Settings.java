@@ -11,6 +11,7 @@ public class Settings {
         public static int intervalNum = 5;
         // the default sampling number for approxiamte refinement
         public static int sampleNum = 20;
+        public static int tsNB = 20;
         // the node size in the balltree
         public static int minLeafNB = 20;
         // public static String geolifePath = "D:/VLDB/Geolife/Data/";

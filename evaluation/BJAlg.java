@@ -1,13 +1,12 @@
 package evaluation;
 
-import java.util.ArrayList;
+import java.util.*;
 import balltree.TernaryBallNode;
 import balltree.TernaryBallTree;
 import utils.TimeIntervalMR;
+import utils.Trajectory;
 
 public class BJAlg {
-    // time-interval motion ranges for all moving objects in
-    public ArrayList<TimeIntervalMR> db = new ArrayList<>();
     // index construction time / filtering time
     public long cTime = 0;
     public long fTime = 0;
@@ -16,25 +15,32 @@ public class BJAlg {
     // the repartition threshold
     public double repartirionRatio = 0;
     public int minLeafNB = 0;
+    public int tsNB = 0;
     // tree structure
-    TernaryBallTree bt;
-    TernaryBallNode root;
+    HashMap<Integer, TernaryBallTree> ballTreeAtEachTimestamp = new HashMap<>();
+    HashMap<Integer, TernaryBallNode> ballRootAtEachTimestamp = new HashMap<>();
 
-    public BJAlg(ArrayList<TimeIntervalMR> db, double repartirionRatio, int minLeafNB) {
-        this.db = db;
+    public BJAlg(int tsNB, double repartirionRatio, int minLeafNB) {
+        this.tsNB = tsNB;
         this.repartirionRatio = repartirionRatio;
         this.minLeafNB = minLeafNB;
-        construct();
     }
 
-    public TernaryBallNode construct() {
+    // construct indexes at all timestamp
+    public void constructMulti(ArrayList<Trajectory> db) {
         long t1 = System.currentTimeMillis();
-        bt = new TernaryBallTree(minLeafNB, db, repartirionRatio);
-        root = bt.buildBallTree();
-        // root.levelOrder(root);
+        for (int ts = 0; ts < tsNB; ts++) {
+            ArrayList<TimeIntervalMR> motionRanges = new ArrayList<>();
+            for (Trajectory dbTrj : db) {
+                motionRanges.add(dbTrj.EllipseSeq.get(ts));
+            }
+            TernaryBallTree bt = new TernaryBallTree(minLeafNB, motionRanges, repartirionRatio);
+            TernaryBallNode root = bt.buildBallTree();
+            ballTreeAtEachTimestamp.put(ts, bt);
+            ballRootAtEachTimestamp.put(ts, root);
+        }
         long t2 = System.currentTimeMillis();
-        cTime = t2 - t1;
-        return root;
+        cTime += (t2 - t1);
     }
 
     /**
@@ -42,12 +48,13 @@ public class BJAlg {
      * 
      * @return all candidate pairs
      */
-    public ArrayList<TimeIntervalMR> getCandidate(TimeIntervalMR q) {
-
+    public ArrayList<TimeIntervalMR> getCandidate(int idx, TimeIntervalMR q) {
+        TernaryBallTree bt = ballTreeAtEachTimestamp.get(idx);
+        TernaryBallNode root = ballRootAtEachTimestamp.get(idx);
         long t1 = System.currentTimeMillis();
         ArrayList<TimeIntervalMR> candidates = bt.searchRange(root, q);
         long t2 = System.currentTimeMillis();
-        searchCount = bt.searchCount;
+        searchCount += bt.searchCount;
         t2 = System.currentTimeMillis();
         fTime += t2 - t1;
         return candidates;
