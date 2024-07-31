@@ -44,8 +44,16 @@ public class Loader {
     public void getTrajectoryData(int readObjNum) {
         if (Settings.data == "Porto") {
             getPortoTrajectory(readObjNum);
+        } else if (Settings.data == "Geolife") {
+            getGeolifeTrajectory(readObjNum);
+        } else {
+            System.out.println("No such dataset!!");
             return;
         }
+        System.out.printf("Dataset name: %s Trajectory Size: %d \n", Settings.data, trjs.size());
+    }
+
+    public void getGeolifeTrajectory(int readObjNum) {
         File dir = new File(Settings.geolifePath);
         List<File> allFileList = new ArrayList<>();
         if (!dir.exists()) {
@@ -59,6 +67,7 @@ public class Loader {
         // obtain all locations
         BufferedReader reader;
         int id = 0;
+        int lastTS = 0;
         for (File f : allFileList) {
             try {
                 reader = new BufferedReader(new FileReader(f));
@@ -68,15 +77,20 @@ public class Loader {
                 }
                 // load one trajectory per line
                 ArrayList<Location> traj = new ArrayList<>();
+
                 while ((lineString = reader.readLine()) != null) {
                     String[] line = lineString.split(",");
+
                     if (line.length > 5) {
                         double real_lat = Double.parseDouble(line[0]);
                         double real_lon = Double.parseDouble(line[1]);
                         String[] hms = line[line.length - 1].split(":");
                         int ts = Integer.parseInt(hms[0]) * 3600 + Integer.parseInt(hms[1]) * 60
                                 + Integer.parseInt(hms[2]);
-                        traj.add(new Location(id, real_lon, real_lat, ts));
+                        if (ts != lastTS) {
+                            traj.add(new Location(id, real_lon, real_lat, ts));
+                        }
+                        lastTS = ts;
                         if (traj.size() >= Settings.tsNB) {
                             break;
                         }
@@ -95,7 +109,7 @@ public class Loader {
                 e.printStackTrace();
             }
         }
-        System.out.printf("Trajectory Size: %d \n", id, trjs.size());
+
     }
 
     /**
@@ -146,7 +160,6 @@ public class Loader {
             // TODO: handle exception
             e.printStackTrace();
         }
-        System.out.printf("Trajectory Size: %d \n", trjs.size());
     }
 
     /**
@@ -172,13 +185,5 @@ public class Loader {
             }
         }
     }
-
-    // public static void main(String[] args) {
-    // Loader l = new Loader();
-    // l.getPortoTrajectory(100);
-    // for (Trajectory t : l.trjs) {
-    // System.out.println(t);
-    // }
-    // }
 
 }

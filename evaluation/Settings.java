@@ -6,9 +6,9 @@ public class Settings {
         // shuffle data
         public static boolean isShuffle = false;
         // the number of processed moving objects
-        public static int objectNB = (data == "Geolife") ? 2000 : 1000;
+        public static int objectNB = (data == "Geolife") ? 3000 : 3000;
         // the number of partitions of a time-interval
-        public static int intervalNum = 3;
+        public static int intervalNum = 10;
         // the default sampling number for approxiamte refinement
         public static int sampleNum = 10;
         public static int tsNB = 20;
@@ -23,7 +23,7 @@ public class Settings {
         // the default and varying maximum speed of each moving objects
         public static double maxSpeed = 2.5;
         public static double[] maxSpeeds = { 1.5, 2, 2.5, 3, 3.5 };
-        // the default and varying number of moving objects
+        // the default and varying number of moving objects∂
         public static int cardinality = (data == "Geolife") ? 100000 : 20000;
         public static int[] cardinalities = (data == "Geolife") ? new int[] { 100000, 200000, 300000, 400000, 500000 }
                         : new int[] { 20000, 40000, 60000, 80000, 100000 };

@@ -21,6 +21,7 @@ public class TernaryBallTree extends BallTree {
         double[] pivot = this.getPivot(this.indexes, 0, pointNB - 1);
         double radius = this.getRadius(this.indexes, 0, pointNB - 1, pivot);
         TernaryBallNode root = new TernaryBallNode(1, 0, pointNB - 1, pivot, radius);
+
         try {
             this.localBuildBallTree(root, 1);
         } catch (StackOverflowError e) {
@@ -105,7 +106,7 @@ public class TernaryBallTree extends BallTree {
             double[] anchor = new double[2];
             anchor[0] = (furthest1[0] + furthest2[0]) / 2;
             anchor[1] = (furthest1[1] + furthest2[1]) / 2;
-            double minDist = 10000;
+            double minDist = Double.MAX_VALUE;
             if (leftWeight > rightWeight) {
                 // get a new node for partition
                 for (int i = node.idxStart; i < split; i++) {

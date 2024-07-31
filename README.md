@@ -8,11 +8,15 @@
 6. unalighed support
 7. time complexity analysis
 8. uncertain road network/trajectories
-Ö¸³öÔ­À´µÄÏàËÆ¶È¼ÆËã¿ÉÄÜ´æÔÚÎÊÌâ
-1. Îª¿¼ÂÇÇ±ÔÚÇøÓò
-2. ¾àÀëºÍÊ±¼äÎ´¶ÔÆë
-3. ãÐÖµÉè¼Æ
+Ö¸ï¿½ï¿½Ô­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ¶È¼ï¿½ï¿½ï¿½ï¿½ï¿½Ü´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+1. Îªï¿½ï¿½ï¿½ï¿½Ç±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+2. ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Î´ï¿½ï¿½ï¿½ï¿½
+3. ï¿½ï¿½Öµï¿½ï¿½ï¿½
 
-×ö¹ý±ðÈËknnÁÚ¾Ó¼ÒµÄ£¬ÌáÇ°¼ÇÂ¼µ½ÏÂÒ»¸ö
+ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½knnï¿½Ú¾Ó¼ÒµÄ£ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
 
-2024/7/30 ¸üÐÂTimeIntervalMRÖÐµÄa,b¼ÆËã£¬ËÙ¶ÈÉèÖÃÎª×î´óËÙ¶ÈµÄ1.05x
+2024/7/30 ï¿½ï¿½ï¿½ï¿½TimeIntervalMRï¿½Ðµï¿½a,bï¿½ï¿½ï¿½ã£¬ï¿½Ù¶ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½Ù¶Èµï¿½1.05x
+check if a,b==0
+check if maxspeed == nan
+
+change "double minDist = 10000" in TernaryBallTree to "double minDist = Double.MAX_VALUE;"

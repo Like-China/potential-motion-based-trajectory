@@ -44,12 +44,8 @@ public class Trajectory {
         }
         // generate ellipse and data
         maxSpeed *= 1.01;
-        if (maxSpeed >= 100) {
+        if (maxSpeed >= 100 || minSpeed <= 0 || Double.isNaN(maxSpeed)) {
             // System.out.println("Exceed Max Speed: " + maxSpeed);
-            return;
-        }
-        if (minSpeed <= 0) {
-            // System.out.println("Low Min Speed: " + minSpeed);
             return;
         }
         for (int i = 0; i < this.sampleSize - 1; i++) {
@@ -71,12 +67,15 @@ public class Trajectory {
         }
         // remove static or abnormal objects
         // a == 0 the timestampe does not change
-        if (maxSpeed >= 100) {
+        if (maxSpeed >= 50) {
             // System.out.println("Exceed Max Speed: " + maxSpeed);
             return true;
         }
         if (minSpeed <= 0) {
             // System.out.println("Low Min Speed: " + minSpeed);
+            return true;
+        }
+        if (Double.isNaN(maxSpeed)) {
             return true;
         }
         return false;
@@ -93,38 +92,32 @@ public class Trajectory {
     public double sampleLocsimTo(Trajectory that) {
         assert this.sampleSize == Settings.tsNB;
         double similarity = 0;
+        double dist = 0;
         for (int i = 0; i < Settings.tsNB; i++) {
             Location thisLocation = this.locationSeq.get(i);
             Location thatLocation = that.locationSeq.get(i);
-            double dist = thisLocation.distTo(thatLocation);
+            dist = thisLocation.distTo(thatLocation);
             similarity += Math.exp(-dist);
         }
         return similarity / Settings.tsNB;
     }
 
     // the trajectory similairity from this to another
-    public double simTo(Trajectory that) {
+    public double simTo(Trajectory that, double sampleSim) {
         int trjLen = Settings.tsNB;
-        double similarity = 0;
-        // sample location similarity
-        for (int i = 0; i < trjLen; i++) {
-            Location thisLocation = this.locationSeq.get(i);
-            Location thatLocation = that.locationSeq.get(i);
-            double dist = thisLocation.distTo(thatLocation);
-            similarity += Math.exp(-dist);
-        }
+        double similarity = sampleSim * trjLen;
         // Motion ranges' POI similarity
         for (int i = 0; i < trjLen - 1; i++) {
             TimeIntervalMR thisMR = this.EllipseSeq.get(i);
             TimeIntervalMR thatMR = that.EllipseSeq.get(i);
             ArrayList<Point[]> thisPoints = thisMR.POIs;
             ArrayList<Point[]> thatPoints = thatMR.POIs;
-            assert thisPoints.size() == Settings.intervalNum;
+            assert thisPoints.size() == Settings.intervalNum || thisPoints.size() == 1;
             for (int j = 0; j < thisPoints.size(); j++) {
                 double minDist = Double.MAX_VALUE;
                 for (Point A : thisPoints.get(j)) {
                     for (Point B : thatPoints.get(j)) {
-                        double dist = Math.sqrt(Math.pow(A.x - B.x, 2) + Math.pow(A.x - B.x, 2));
+                        double dist = Math.sqrt(Math.pow(A.x - B.x, 2) + Math.pow(A.y - B.y, 2));
                         minDist = minDist > dist ? dist : minDist;
                     }
                 }
@@ -134,21 +127,16 @@ public class Trajectory {
         return similarity / (trjLen + (trjLen - 1) * Settings.intervalNum);
     }
 
-    public double upperBoundTo(Trajectory that) {
+    public double upperBoundTo(Trajectory that, double sampleSim) {
         int trjLen = Settings.tsNB;
-        double similarity = 0;
-        // sample location similarity
-        for (int i = 0; i < trjLen; i++) {
-            Location thisLocation = this.locationSeq.get(i);
-            Location thatLocation = that.locationSeq.get(i);
-            double dist = thisLocation.distTo(thatLocation);
-            similarity += Math.exp(-dist);
-        }
+        double similarity = sampleSim * trjLen;
         // Motion ranges' POI similarity
         for (int ts = 0; ts < trjLen - 1; ts++) {
             TimeIntervalMR thisMR = this.EllipseSeq.get(ts);
             TimeIntervalMR thatMR = that.EllipseSeq.get(ts);
             double dist;
+            // double dist = Math.sqrt(Math.pow(thisMR.center[0] - thatMR.center[0], 2)
+            // + Math.pow(thisMR.center[1] - thatMR.center[1], 2)) - thisMR.a - thatMR.a;
             if (ts2candidate.get(ts).contains(thatMR)) {
                 dist = 0;
             } else {
@@ -156,6 +144,7 @@ public class Trajectory {
                         + Math.pow(thisMR.center[1] - thatMR.center[1], 2)) - thisMR.a - thatMR.a;
                 assert dist > 0;
             }
+            dist = (dist > 0) ? dist : 0;
             similarity += (Math.exp(-dist) * Settings.intervalNum);
         }
         return similarity / (trjLen + (trjLen - 1) * Settings.intervalNum);

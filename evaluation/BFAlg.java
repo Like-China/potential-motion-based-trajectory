@@ -8,7 +8,8 @@ import utils.TimeIntervalMR;
 import utils.Trajectory;
 
 public class BFAlg {
-    public long fTime = 0;
+    public long nnJoinTime = 0;
+    public long rangeJoinTime = 0;
 
     public static Comparator<NN> NNComparator = new Comparator<NN>() {
         @Override
@@ -24,7 +25,6 @@ public class BFAlg {
      */
     public int getIntersection(ArrayList<Trajectory> queries,
             ArrayList<Trajectory> db) {
-        long t1 = System.currentTimeMillis();
         int matchNB = 0;
         ArrayList<TimeIntervalMR> candidates = new ArrayList<>();
         for (Trajectory qTrj : queries) {
@@ -41,15 +41,15 @@ public class BFAlg {
                 }
             }
         }
-        long t2 = System.currentTimeMillis();
-        fTime = t2 - t1;
+
         return matchNB;
     }
 
     public ArrayList<Trajectory> rangeSearch(Trajectory qTrj, ArrayList<Trajectory> db, double simThreshold) {
         ArrayList<Trajectory> res = new ArrayList<>();
         for (Trajectory dbTrj : db) {
-            double sim = qTrj.simTo(dbTrj);
+            double sampleSim = qTrj.sampleLocsimTo(dbTrj);
+            double sim = qTrj.simTo(dbTrj, sampleSim);
             if (sim >= simThreshold) {
                 res.add(dbTrj);
             }
@@ -71,14 +71,15 @@ public class BFAlg {
             matchNB += res.size();
         }
         long t2 = System.currentTimeMillis();
-        fTime = t2 - t1;
+        rangeJoinTime = t2 - t1;
         return matchNB;
     }
 
     public PriorityQueue<NN> nnSearch(ArrayList<Trajectory> db, Trajectory qTrj, int k) {
         PriorityQueue<NN> nnQueue = new PriorityQueue<>(NNComparator);
         for (Trajectory dbTrj : db) {
-            double sim = qTrj.simTo(dbTrj);
+            double sampleSim = qTrj.sampleLocsimTo(dbTrj);
+            double sim = qTrj.simTo(dbTrj, sampleSim);
             if (nnQueue.size() < k) {
                 nnQueue.add(new NN(dbTrj, sim));
                 continue;
@@ -91,20 +92,16 @@ public class BFAlg {
         return nnQueue;
     }
 
-    public void nnJoin(ArrayList<Trajectory> queries, ArrayList<Trajectory> db, int k) {
+    public ArrayList<PriorityQueue<NN>> nnJoin(ArrayList<Trajectory> queries, ArrayList<Trajectory> db, int k) {
         long t1 = System.currentTimeMillis();
+        ArrayList<PriorityQueue<NN>> nns = new ArrayList<>();
         for (Trajectory qTrj : queries) {
             PriorityQueue<NN> nn = nnSearch(db, qTrj, k);
-            // System.out.println(qTrj.objectID);
-            // while (!nn.isEmpty()) {
-            // System.out.println(nn.poll());
-            // }
-            // System.out.println();
-
+            nns.add(nn);
         }
         long t2 = System.currentTimeMillis();
-        fTime += (t2 - t1);
-
+        nnJoinTime += (t2 - t1);
+        return nns;
     }
 
 }

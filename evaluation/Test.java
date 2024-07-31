@@ -29,7 +29,6 @@ public class Test {
     }
 
     public static void main(String[] args) {
-        long startTime, endTime;
         Loader l = new Loader();
         int n = Settings.objectNB;
         double simThreshold = 0.05;
@@ -37,36 +36,34 @@ public class Test {
         l.getQueryDB(n / 2);
 
         BFAlg bf = new BFAlg();
-        int matchNB = 0;
-
-        startTime = System.currentTimeMillis();
-        // matchNB = bf.getAll(l.queries, l.db, simThreshold);
-        matchNB = bf.rangeJoin(l.queries, l.db, simThreshold);
-        endTime = System.currentTimeMillis();
-        System.out.println(
-                String.format("Brute-Force Range Join Match Number: %d Time cost: %d", matchNB, endTime -
-                        startTime));
-
-        // startTime = System.currentTimeMillis();
-        // bf.nnJoin(l.queries, l.db, 5);
-        // endTime = System.currentTimeMillis();
-        // System.out.println(
-        // String.format("Brute-Force NN Join Time cost: %d", endTime - startTime));
-
-        // startTime = System.currentTimeMillis();
-        // matchNB = bf.getIntersection(l.queries, l.db);
-        // endTime = System.currentTimeMillis();
-        // System.out.println(String.format("BF Pruning Match Number: %d Time cost: %d",
-        // matchNB, endTime - startTime));
-
         // construct ball-tree index then pruning
         BJAlg bj = new BJAlg(l.queries, l.db, Settings.tsNB, Settings.repartitionRatio, Settings.minLeafNB);
-        bj.nnJoin(l.queries, l.db, 10);
-        System.out.println(String.format("Ball-tree NN-Join CTime: %d FTime: %d", bj.cTime, bj.fTime));
 
-        matchNB = bj.rangeJoin(l.queries, l.db, simThreshold);
-        System.out.println(
-                String.format("Ball-tree Range-Join MatchNB: %d CTime: %d FTime: %d", matchNB, bj.cTime, bj.fTime));
+        int bfMatchNB = bf.rangeJoin(l.queries, l.db, simThreshold);
+        System.out.println(String.format("BF Range-Join MatchNB: %d Time cost: %d",
+                bfMatchNB, bf.rangeJoinTime));
+
+        int bjMatchNB = bj.rangeJoin(l.queries, l.db, simThreshold);
+        System.out.println(String.format("BT Range-Join MatchNB: %d CTime: %d  FTime: %d", bjMatchNB, bj.cTime,
+                bj.rangeJoinTime));
+        assert bfMatchNB == bjMatchNB;
+
+        ArrayList<PriorityQueue<NN>> bfNNRes = bf.nnJoin(l.queries, l.db, 5);
+        System.out.println(String.format("Brute-Force NN-Join Time cost: %d", bf.nnJoinTime));
+
+        ArrayList<PriorityQueue<NN>> bjNNRes = bj.nnJoin(l.queries, l.db, 5);
+        System.out.println(String.format("Ball-tree   NN-Join CTime: %d FTime: %d", bj.cTime, bj.nnJoinTime));
+
+        assert bfNNRes.size() == bjNNRes.size();
+        for (int i = 0; i < bfNNRes.size(); i++) {
+            PriorityQueue<NN> bfNNs = bfNNRes.get(i);
+            PriorityQueue<NN> bjNNs = bjNNRes.get(i);
+            for (int j = 0; j < bfNNs.size(); j++) {
+                NN bfNN = bfNNs.poll();
+                NN bjNN = bjNNs.poll();
+                assert bfNN.sim == bjNN.sim;
+            }
+        }
 
         // construct M-tree index then pruning
         // startTime = System.currentTimeMillis();

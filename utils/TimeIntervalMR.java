@@ -44,8 +44,13 @@ public class TimeIntervalMR {
             double By = nextLocation.y;
             double r1 = maxSpeed * (nextLocation.timestamp - curLocation.timestamp) * i / intervalNum;
             double r2 = maxSpeed * (nextLocation.timestamp - curLocation.timestamp) * (intervalNum - i) / intervalNum;
-            if (r1 == 0) {
-                System.out.println(maxSpeed);
+
+            // if the object is static, then it has no potential POIs
+            if (r1 == 0 || r2 == 0) {
+                Point[] pointOfThis = new Point[1];
+                pointOfThis[0] = new Point(Ax, Ay);
+                POIs.add(pointOfThis);
+                continue;
             }
             TimePointMR MR = new TimePointMR(Ax, Ay, Bx, By, r1, r2);
             // calculate the intersection simlarity using the uniform sampling methods
@@ -53,7 +58,7 @@ public class TimeIntervalMR {
             for (Point p : pointOfThis) {
                 double d1 = Math.sqrt((p.x - Ax) * (p.x - Ax) + (p.y - Ay) * (p.y - Ay));
                 double d2 = Math.sqrt((p.x - Bx) * (p.x - Bx) + (p.y - By) * (p.y - By));
-                assert d1 + d2 < 2 * a;
+                assert d1 + d2 <= 2 * a;
             }
             POIs.add(pointOfThis);
         }
@@ -68,10 +73,11 @@ public class TimeIntervalMR {
         a = maxSpeed * (nextLocation.timestamp - curLocation.timestamp) / 2;
         b = Math.sqrt(4 * a * a
                 - (Math.pow(curLocation.x - nextLocation.x, 2) + Math.pow(curLocation.y - nextLocation.y, 2))) / 2;
-        // System.out.println(a + "/" + b + "/" + maxSpeed + "/" + speed);
-        assert a >= 0;
-        assert b >= 0;
-        assert a >= b;
+        if (a <= 0 || b <= 0 || a <= b) {
+            System.out.println(nextLocation.timestamp - curLocation.timestamp);
+            System.out.println("Error");
+            System.out.println(a + "/" + b + "/" + maxSpeed + "/" + speed);
+        }
     }
 
     @Override
@@ -79,11 +85,6 @@ public class TimeIntervalMR {
         // TODO Auto-generated method stub
         return curLocation.toString() + "->\n" + nextLocation.toString() + "\nCenter: " + Arrays.toString(center)
                 + String.format("\nspeed: %.3f maxSpeed: %.3f a: %.3f b %.3f", speed, maxSpeed, a, b);
-    }
-
-    // get the area of the ellipse
-    public double getArea() {
-        return Math.PI * a * b;
     }
 
     public double[] getEllipseMBR() {

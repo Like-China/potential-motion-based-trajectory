@@ -10,7 +10,8 @@ import utils.Trajectory;
 public class BJAlg {
     // index construction time / filtering time
     public long cTime = 0;
-    public long fTime = 0;
+    public long nnJoinTime = 0;
+    public long rangeJoinTime = 0;
     // the number of node accesses
     public int searchCount = 0;
     public int intersectCount = 0;
@@ -18,6 +19,9 @@ public class BJAlg {
     public double repartirionRatio = 0;
     public int minLeafNB = 0;
     public int tsNB = 0;
+    // pruning count
+    public double rangePruningCount = 0;
+    public double nnPruningCount = 0;
 
     public static Comparator<NN> NNComparator = new Comparator<NN>() {
         @Override
@@ -52,16 +56,18 @@ public class BJAlg {
             }
         }
         long t2 = System.currentTimeMillis();
-        cTime += (t2 - t1);
+        cTime = (t2 - t1);
     }
 
     public ArrayList<Trajectory> rangeSearch(Trajectory qTrj, ArrayList<Trajectory> db, double simThreshold) {
         ArrayList<Trajectory> res = new ArrayList<>();
         for (Trajectory dbTrj : db) {
-            if (qTrj.upperBoundTo(dbTrj) < simThreshold) {
+            double sampleSim = qTrj.sampleLocsimTo(dbTrj);
+            if (qTrj.upperBoundTo(dbTrj, sampleSim) < simThreshold) {
+                rangePruningCount++;
                 continue;
             }
-            double sim = qTrj.simTo(dbTrj);
+            double sim = qTrj.simTo(dbTrj, sampleSim);
             if (sim >= simThreshold) {
                 res.add(dbTrj);
             }
@@ -82,7 +88,9 @@ public class BJAlg {
             matchNB += res.size();
         }
         long t2 = System.currentTimeMillis();
-        fTime = t2 - t1;
+        rangeJoinTime = t2 - t1;
+        System.out.println("-- Range Pruning count: " + rangePruningCount + " Pruning Ratio: "
+                + (rangePruningCount / (db.size() * queries.size())));
         return matchNB;
     }
 
@@ -90,7 +98,6 @@ public class BJAlg {
         HashMap<Integer, ArrayList<TimeIntervalMR>> ts2candidate = qTrj.ts2candidate;
         HashMap<Integer, Integer> interCount = new HashMap<>();
 
-        PriorityQueue<NN> candidateQueue = new PriorityQueue<>(NNComparator);
         PriorityQueue<NN> nnQueue = new PriorityQueue<>(NNComparator);
 
         // exact calculation to refine
@@ -137,53 +144,44 @@ public class BJAlg {
 
         // System.out.println("minNNsim: " + nnQueue.peek().sim);
 
-        double max = 0;
-        for (Trajectory dbTrj : db) {
-            double upper = qTrj.upperBoundTo(dbTrj);
-            candidateQueue.add(new NN(dbTrj, upper));
-            max = max > upper ? max : upper;
-        }
-        // System.out.println("max upper: " + max);
-
         for (int i = 0; i < k; i++) {
-            NN candidate = candidateQueue.poll();
-            Trajectory nnCandidate = candidate.trj;
-            double sim = qTrj.simTo(nnCandidate);
+            Trajectory nnCandidate = db.get(i);
+            double sampleSim = qTrj.sampleLocsimTo(nnCandidate);
+            double sim = qTrj.simTo(nnCandidate, sampleSim);
             nnQueue.add(new NN(nnCandidate, sim));
         }
-        int calcNB = 0;
-        while (!candidateQueue.isEmpty()) {
-            NN candidate = candidateQueue.poll();
-            Trajectory nnCandidate = candidate.trj;
+        for (int i = k; i < db.size(); i++) {
+            Trajectory nnCandidate = db.get(i);
             double curMinNNSim = nnQueue.peek().sim;
-            calcNB++;
-            if (curMinNNSim > candidate.sim) {
-                // System.out.println(calcNB + "/" + curMinNNSim + "/" + candidate.sim);
-                break;
+            double sampleSim = qTrj.sampleLocsimTo(nnCandidate);
+            double upper = qTrj.upperBoundTo(nnCandidate, sampleSim);
+            if (curMinNNSim > upper) {
+                nnPruningCount++;
+                // System.out.println(curMinNNSim + "/" + upper);
+                continue;
             }
-            double sim = qTrj.simTo(nnCandidate);
+            double sim = qTrj.simTo(nnCandidate, sampleSim);
             if (sim > curMinNNSim) {
                 nnQueue.poll();
                 nnQueue.add(new NN(nnCandidate, sim));
             }
         }
+
         return nnQueue;
     }
 
-    public void nnJoin(ArrayList<Trajectory> queries, ArrayList<Trajectory> db, int k) {
+    public ArrayList<PriorityQueue<NN>> nnJoin(ArrayList<Trajectory> queries, ArrayList<Trajectory> db, int k) {
         long t1 = System.currentTimeMillis();
+        ArrayList<PriorityQueue<NN>> nns = new ArrayList<>();
         for (Trajectory trj1 : queries) {
             PriorityQueue<NN> nn = nnSearch(db, trj1, k);
-            // System.out.println(trj1.objectID);
-            // while (!nn.isEmpty()) {
-            // System.out.println(nn.poll());
-            // }
-            // System.out.println();
-
+            nns.add(nn);
         }
         long t2 = System.currentTimeMillis();
-        fTime += (t2 - t1);
-
+        nnJoinTime += (t2 - t1);
+        System.out.println("-- NN Pruning count: " + nnPruningCount + " Pruning Ratio: "
+                + (nnPruningCount / (db.size() * queries.size())));
+        return nns;
     }
 
 }
