@@ -64,8 +64,8 @@ public class BFAlg {
         int i = 0;
         for (Trajectory qTrj : queries) {
             i++;
-            if (i % 100 == 0) {
-                System.out.println(i + "/" + queries.size());
+            if (i % (queries.size() / 10) == 0) {
+                System.out.print(i * 100 / queries.size() + "%-> ");
             }
             ArrayList<Trajectory> res = rangeSearch(qTrj, db, simThreshold);
             matchNB += res.size();
@@ -95,7 +95,12 @@ public class BFAlg {
     public ArrayList<PriorityQueue<NN>> nnJoin(ArrayList<Trajectory> queries, ArrayList<Trajectory> db, int k) {
         long t1 = System.currentTimeMillis();
         ArrayList<PriorityQueue<NN>> nns = new ArrayList<>();
+        int i = 0;
         for (Trajectory qTrj : queries) {
+            i++;
+            if (i % (queries.size() / 10) == 0) {
+                System.out.print(i * 100 / queries.size() + "%-> ");
+            }
             PriorityQueue<NN> nn = nnSearch(db, qTrj, k);
             nns.add(nn);
         }

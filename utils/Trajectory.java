@@ -44,7 +44,7 @@ public class Trajectory {
         }
         // generate ellipse and data
         maxSpeed *= 1.01;
-        if (maxSpeed >= 100 || minSpeed <= 0 || Double.isNaN(maxSpeed)) {
+        if (isDelete()) {
             // System.out.println("Exceed Max Speed: " + maxSpeed);
             return;
         }
@@ -67,7 +67,7 @@ public class Trajectory {
         }
         // remove static or abnormal objects
         // a == 0 the timestampe does not change
-        if (maxSpeed >= 50) {
+        if (maxSpeed >= 20) {
             // System.out.println("Exceed Max Speed: " + maxSpeed);
             return true;
         }
@@ -127,16 +127,14 @@ public class Trajectory {
         return similarity / (trjLen + (trjLen - 1) * Settings.intervalNum);
     }
 
-    public double upperBoundTo(Trajectory that, double sampleSim) {
+    public double upperBoundTo(Trajectory that) {
         int trjLen = Settings.tsNB;
-        double similarity = sampleSim * trjLen;
+        double similarity = 0;
         // Motion ranges' POI similarity
+        double dist = 0;
         for (int ts = 0; ts < trjLen - 1; ts++) {
             TimeIntervalMR thisMR = this.EllipseSeq.get(ts);
             TimeIntervalMR thatMR = that.EllipseSeq.get(ts);
-            double dist;
-            // double dist = Math.sqrt(Math.pow(thisMR.center[0] - thatMR.center[0], 2)
-            // + Math.pow(thisMR.center[1] - thatMR.center[1], 2)) - thisMR.a - thatMR.a;
             if (ts2candidate.get(ts).contains(thatMR)) {
                 dist = 0;
             } else {
@@ -144,9 +142,9 @@ public class Trajectory {
                         + Math.pow(thisMR.center[1] - thatMR.center[1], 2)) - thisMR.a - thatMR.a;
                 assert dist > 0;
             }
-            dist = (dist > 0) ? dist : 0;
-            similarity += (Math.exp(-dist) * Settings.intervalNum);
+            similarity += (Math.exp(-dist) * (Settings.intervalNum + 1));
         }
+        similarity += Math.exp(-dist);
         return similarity / (trjLen + (trjLen - 1) * Settings.intervalNum);
     }
 }

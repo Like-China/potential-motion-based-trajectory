@@ -36,7 +36,7 @@ public class TimePointMR {
         double mbrMinY = Math.max(Ay - r1, By - r2);
         double mbrMaxX = Math.min(Ax + r1, Bx + r2);
         double mbrMaxY = Math.min(Ay + r1, By + r2);
-        while (i < 10) {
+        while (i < numSamples) {
             double randomX = mbrMinX + ((mbrMaxX - mbrMinX) * r.nextDouble());
             double randomY = mbrMinY + ((mbrMaxY - mbrMinY) * r.nextDouble());
             // check if the point in the time-interval Ellipse

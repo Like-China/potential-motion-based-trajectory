@@ -30,29 +30,31 @@ public class Test {
 
     public static void main(String[] args) {
         Loader l = new Loader();
-        int n = Settings.objectNB;
-        double simThreshold = 0.05;
-        l.getTrajectoryData(n);
-        l.getQueryDB(n / 2);
+        double simThreshold = Settings.simThreshold;
+        l.getTrajectoryData(Settings.dataNB);
+        l.getQueryDB(Settings.dataNB);
 
-        BFAlg bf = new BFAlg();
         // construct ball-tree index then pruning
         BJAlg bj = new BJAlg(l.queries, l.db, Settings.tsNB, Settings.repartitionRatio, Settings.minLeafNB);
+
+        int bjMatchNB = bj.rangeJoin(l.queries, l.db, simThreshold);
+        System.out.println(
+                String.format("BT RJoin MatchNB: %d CTime: %d FTime: %d\n", bjMatchNB, bj.cTime, bj.rangeJoinTime));
+
+        ArrayList<PriorityQueue<NN>> bjNNRes = bj.nnJoin(l.queries, l.db, Settings.k);
+        System.out.println(String.format("Ball-tree   NN-Join CTime: %d FTime: %d\n", bj.cTime, bj.nnJoinTime));
+
+        // Brute-Force solution
+        BFAlg bf = new BFAlg();
 
         int bfMatchNB = bf.rangeJoin(l.queries, l.db, simThreshold);
         System.out.println(String.format("BF Range-Join MatchNB: %d Time cost: %d",
                 bfMatchNB, bf.rangeJoinTime));
-
-        int bjMatchNB = bj.rangeJoin(l.queries, l.db, simThreshold);
-        System.out.println(String.format("BT Range-Join MatchNB: %d CTime: %d  FTime: %d", bjMatchNB, bj.cTime,
-                bj.rangeJoinTime));
         assert bfMatchNB == bjMatchNB;
 
-        ArrayList<PriorityQueue<NN>> bfNNRes = bf.nnJoin(l.queries, l.db, 5);
-        System.out.println(String.format("Brute-Force NN-Join Time cost: %d", bf.nnJoinTime));
-
-        ArrayList<PriorityQueue<NN>> bjNNRes = bj.nnJoin(l.queries, l.db, 5);
-        System.out.println(String.format("Ball-tree   NN-Join CTime: %d FTime: %d", bj.cTime, bj.nnJoinTime));
+        ArrayList<PriorityQueue<NN>> bfNNRes = bf.nnJoin(l.queries, l.db, Settings.k);
+        System.out.println(String.format("Brute-Force NN-Join Time cost: %d",
+                bf.nnJoinTime));
 
         assert bfNNRes.size() == bjNNRes.size();
         for (int i = 0; i < bfNNRes.size(); i++) {

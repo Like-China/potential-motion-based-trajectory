@@ -20,3 +20,8 @@ check if a,b==0
 check if maxspeed == nan
 
 change "double minDist = 10000" in TernaryBallTree to "double minDist = Double.MAX_VALUE;"
+
+* strategy
+1. use tree index
+2. use order for nn
+3. construct upper bound / lower bound

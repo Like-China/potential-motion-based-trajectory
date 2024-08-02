@@ -150,9 +150,10 @@ public class Loader {
                     ts += 15;
                 }
                 Trajectory newTrj = new Trajectory(id, traj);
+
                 if (!newTrj.isDelete()) {
                     trjs.add(newTrj);
-                    id++;
+                    id += 1;
                 }
             }
             reader.close();
@@ -166,23 +167,17 @@ public class Loader {
      * first run getAllData() to fill ArrayList<Data> allData, then run getBatch()
      * to get a batch of data
      * 
-     * @param querySize the query size, the remaining is stored in the database
+     * @param dataNB the query size, the remaining is stored in the database
      */
-    public void getQueryDB(int querySize) {
+    public void getQueryDB(int dataNB) {
         queries = new ArrayList<>();
         db = new ArrayList<>();
         int size = trjs.size();
-        assert size >= 2 * querySize : "Lack of data!";
-        // if not shuffle, sequencely read, else shuffle data
-        if (Settings.isShuffle)
-            Collections.shuffle(trjs);
-        for (int i = 0; i < 2 * querySize; i++) {
+        assert size >= dataNB : "Lack of data!";
+        for (int i = 0; i < dataNB; i++) {
             Trajectory trj = trjs.get(i);
-            if (i < querySize) {
-                queries.add(trj);
-            } else {
-                db.add(trj);
-            }
+            queries.add(trj);
+            db.add(trj);
         }
     }
 

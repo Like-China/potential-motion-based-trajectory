@@ -62,11 +62,12 @@ public class BJAlg {
     public ArrayList<Trajectory> rangeSearch(Trajectory qTrj, ArrayList<Trajectory> db, double simThreshold) {
         ArrayList<Trajectory> res = new ArrayList<>();
         for (Trajectory dbTrj : db) {
-            double sampleSim = qTrj.sampleLocsimTo(dbTrj);
-            if (qTrj.upperBoundTo(dbTrj, sampleSim) < simThreshold) {
+            double upper = qTrj.upperBoundTo(dbTrj);
+            if (upper < simThreshold) {
                 rangePruningCount++;
                 continue;
             }
+            double sampleSim = qTrj.sampleLocsimTo(dbTrj);
             double sim = qTrj.simTo(dbTrj, sampleSim);
             if (sim >= simThreshold) {
                 res.add(dbTrj);
@@ -79,87 +80,86 @@ public class BJAlg {
         long t1 = System.currentTimeMillis();
         int matchNB = 0;
         int i = 0;
+        int qSize = queries.size();
+        int dbSize = db.size();
         for (Trajectory qTrj : queries) {
             i++;
-            if (i % 100 == 0) {
-                System.out.println(i + "/" + queries.size());
+            if (i % (qSize / 10) == 0) {
+                System.out.print(i * 100 / qSize + "%-> ");
             }
             ArrayList<Trajectory> res = rangeSearch(qTrj, db, simThreshold);
             matchNB += res.size();
         }
         long t2 = System.currentTimeMillis();
         rangeJoinTime = t2 - t1;
-        System.out.println("-- Range Pruning count: " + rangePruningCount + " Pruning Ratio: "
-                + (rangePruningCount / (db.size() * queries.size())));
+        System.out.println("\n-- Range Pruning count: " + rangePruningCount + " Pruning Ratio: "
+                + (rangePruningCount / (dbSize * qSize)));
         return matchNB;
     }
 
     public PriorityQueue<NN> nnSearch(ArrayList<Trajectory> db, Trajectory qTrj, int k) {
-        HashMap<Integer, ArrayList<TimeIntervalMR>> ts2candidate = qTrj.ts2candidate;
-        HashMap<Integer, Integer> interCount = new HashMap<>();
-
         PriorityQueue<NN> nnQueue = new PriorityQueue<>(NNComparator);
 
-        // exact calculation to refine
-
-        // for (int ts = 0; ts < tsNB - 1; ts++) {
-        // ArrayList<TimeIntervalMR> mrs = ts2candidate.get(ts);
-        // for (TimeIntervalMR mr : mrs) {
-        // int objID = mr.objectID;
-        // if (interCount.containsKey(objID)) {
-        // interCount.put(objID, interCount.get(objID) + 1);
-        // } else {
-        // interCount.put(objID, 1);
-        // }
-        // }
-        // }
-
-        // sort trajectories with intersection count
-
-        // List<Map.Entry<Integer, Integer>> list = new ArrayList<Map.Entry<Integer,
-        // Integer>>(interCount.entrySet());
-        // Collections.sort(list, new Comparator<Map.Entry<Integer, Integer>>() {
-        // @Override
-        // public int compare(Map.Entry<Integer, Integer> o1, Map.Entry<Integer,
-        // Integer> o2) {
-        // return o2.getValue().compareTo(o1.getValue());
-        // }
-        // });
-
-        // 1. calculate the similarity to another trajectories that have more
-        // intersection count
-
-        // for (Map.Entry<Integer, Integer> mapping : list) {
-        // Trajectory nnCandidate = db.get(mapping.getKey() - Settings.objectNB / 2);
-        // double sim = qTrj.simTo(nnCandidate);
-        // if (nnQueue.size() < k) {
-        // nnQueue.add(new NN(nnCandidate, sim));
-        // continue;
-        // }
-        // if (nnQueue.size() >= k && sim > nnQueue.peek().sim) {
-        // nnQueue.poll();
-        // nnQueue.add(new NN(nnCandidate, sim));
-        // }
-        // }
-
-        // System.out.println("minNNsim: " + nnQueue.peek().sim);
-
-        for (int i = 0; i < k; i++) {
-            Trajectory nnCandidate = db.get(i);
-            double sampleSim = qTrj.sampleLocsimTo(nnCandidate);
-            double sim = qTrj.simTo(nnCandidate, sampleSim);
-            nnQueue.add(new NN(nnCandidate, sim));
+        HashMap<Integer, Integer> interCount = new HashMap<>();
+        ArrayList<Trajectory> checked = new ArrayList<>();
+        if (Settings.useOrder) {
+            // sort trajectories with intersection count, then calculate the similarity to
+            // another trajectories that have more intersection count
+            HashMap<Integer, ArrayList<TimeIntervalMR>> ts2candidate = qTrj.ts2candidate;
+            for (int ts = 0; ts < tsNB - 1; ts++) {
+                ArrayList<TimeIntervalMR> mrs = ts2candidate.get(ts);
+                for (TimeIntervalMR mr : mrs) {
+                    int objID = mr.objectID;
+                    if (interCount.containsKey(objID)) {
+                        interCount.put(objID, interCount.get(objID) + 1);
+                    } else {
+                        interCount.put(objID, 1);
+                    }
+                }
+            }
         }
-        for (int i = k; i < db.size(); i++) {
+
+        if (interCount.size() >= k) {
+            List<Map.Entry<Integer, Integer>> list = new ArrayList<Map.Entry<Integer, Integer>>(interCount.entrySet());
+            int listSize = list.size();
+            if (listSize > k) {
+                Collections.sort(list, new Comparator<Map.Entry<Integer, Integer>>() {
+                    @Override
+                    public int compare(Map.Entry<Integer, Integer> o1, Map.Entry<Integer, Integer> o2) {
+                        return o2.getValue().compareTo(o1.getValue());
+                    }
+                });
+                list = list.subList(0, k);
+            }
+            for (Map.Entry<Integer, Integer> mapping : list) {
+                Trajectory nnCandidate = db.get(mapping.getKey());
+                checked.add(nnCandidate);
+                double sampleSim = qTrj.sampleLocsimTo(nnCandidate);
+                double sim = qTrj.simTo(nnCandidate, sampleSim);
+                nnQueue.add(new NN(nnCandidate, sim));
+            }
+        } else {
+            for (int i = 0; i < k; i++) {
+                Trajectory nnCandidate = db.get(i);
+                double sampleSim = qTrj.sampleLocsimTo(nnCandidate);
+                double sim = qTrj.simTo(nnCandidate, sampleSim);
+                nnQueue.add(new NN(nnCandidate, sim));
+                checked.add(nnCandidate);
+            }
+        }
+
+        for (int i = 0; i < db.size(); i++) {
             Trajectory nnCandidate = db.get(i);
+            if (checked.contains(nnCandidate))
+                continue;
             double curMinNNSim = nnQueue.peek().sim;
-            double sampleSim = qTrj.sampleLocsimTo(nnCandidate);
-            double upper = qTrj.upperBoundTo(nnCandidate, sampleSim);
+            double upper = qTrj.upperBoundTo(nnCandidate);
             if (curMinNNSim > upper) {
                 nnPruningCount++;
                 // System.out.println(curMinNNSim + "/" + upper);
                 continue;
             }
+            double sampleSim = qTrj.sampleLocsimTo(nnCandidate);
             double sim = qTrj.simTo(nnCandidate, sampleSim);
             if (sim > curMinNNSim) {
                 nnQueue.poll();
@@ -173,14 +173,21 @@ public class BJAlg {
     public ArrayList<PriorityQueue<NN>> nnJoin(ArrayList<Trajectory> queries, ArrayList<Trajectory> db, int k) {
         long t1 = System.currentTimeMillis();
         ArrayList<PriorityQueue<NN>> nns = new ArrayList<>();
+        int i = 0;
+        int qSize = queries.size();
+        int dbSize = db.size();
         for (Trajectory trj1 : queries) {
+            i++;
+            if (i % (qSize / 10) == 0) {
+                System.out.print(i * 100 / qSize + "%-> ");
+            }
             PriorityQueue<NN> nn = nnSearch(db, trj1, k);
             nns.add(nn);
         }
         long t2 = System.currentTimeMillis();
         nnJoinTime += (t2 - t1);
-        System.out.println("-- NN Pruning count: " + nnPruningCount + " Pruning Ratio: "
-                + (nnPruningCount / (db.size() * queries.size())));
+        System.out.println("\n-- NN Pruning count: " + nnPruningCount + " Pruning Ratio: "
+                + (nnPruningCount / (dbSize * qSize)));
         return nns;
     }
 
