@@ -1,6 +1,8 @@
 package utils;
 
-import java.util.Random;
+import java.util.ArrayList;
+
+import poi.QuadTree;
 
 public class TimePointMR {
     // The time-point motion range is the intersection region of two circles
@@ -25,28 +27,24 @@ public class TimePointMR {
         }
     }
 
-    // get a given number of point samples within this time-point motion ranges with
-    // uniform sampling
-    public Point[] getUniformSamplingPoints(int numSamples) {
-        Point[] samples = new Point[numSamples];
-        int i = 0;
-        Random r = new Random(10);
-        // The MBR of the time-point motion range
-        double mbrMinX = Math.max(Ax - r1, Bx - r2);
-        double mbrMinY = Math.max(Ay - r1, By - r2);
-        double mbrMaxX = Math.min(Ax + r1, Bx + r2);
-        double mbrMaxY = Math.min(Ay + r1, By + r2);
-        while (i < numSamples) {
-            double randomX = mbrMinX + ((mbrMaxX - mbrMinX) * r.nextDouble());
-            double randomY = mbrMinY + ((mbrMaxY - mbrMinY) * r.nextDouble());
-            // check if the point in the time-interval Ellipse
-            double d1 = Math.sqrt((randomX - Ax) * (randomX - Ax) + (randomY - Ay) * (randomY - Ay));
-            double d2 = Math.sqrt((randomX - Bx) * (randomX - Bx) + (randomY - By) * (randomY - By));
-            if (d1 + d2 <= (r1 + r2)) {
-                samples[i++] = new Point(randomX, randomY);
+    public ArrayList<Point> POIsWithinThis(QuadTree qTree) {
+        ArrayList<Point> POIsCandidate = qTree.findAll(Ax - r1, Ay - r1, Ax + r1, Ay + r1);
+        ArrayList<Point> POIsCandidate1 = qTree.findAll(Bx - r1, By - r1, Bx + r1, By + r1);
+        POIsCandidate.retainAll(POIsCandidate1);
+        ArrayList<Point> res = new ArrayList<>();
+        // if the object is static, then it has no potential POIs
+        if (r1 == 0 || r2 == 0) {
+            POIsCandidate.add(new Point(Ax, Ay));
+            return POIsCandidate;
+        }
+        for (Point p : POIsCandidate) {
+            if (isInsideOverlapArea(p.x, p.y)) {
+                res.add(p);
             }
         }
-        return samples;
+        // System.out.println(POIsCandidate.size() + "/" + POIsCandidate1.size() + "/" +
+        // res.size());
+        return res;
     }
 
     // check if the smaple point is in the time-point motion range

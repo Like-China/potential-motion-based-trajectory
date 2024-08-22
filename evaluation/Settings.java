@@ -1,8 +1,8 @@
 package evaluation;
 
 public class Settings {
-        public static String data = "Geolife";
-        // public static String data = "Porto";
+        // public static String data = "Geolife";
+        public static String data = "Porto";
         // the default threshold of similarity
         public static double simThreshold = 0.1;
         // shuffle data
@@ -12,9 +12,9 @@ public class Settings {
         // use order strategy in ball-tree nn join
         public static boolean useOrder = false;
         // the number of processed moving objects
-        public static int dataNB = 500;
+        public static int dataNB = 200;
         // the number of partitions of a time-interval
-        public static int intervalNum = 3;
+        public static int intervalNum = 10;
         // the default sampling POI number in a time-point motion range
         public static int sampleNum = 5;
         public static int tsNB = 10;

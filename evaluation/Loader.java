@@ -1,20 +1,85 @@
 package evaluation;
 
 import java.util.*;
+
+import poi.QuadTree;
 import utils.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 
 public class Loader {
-    // store all trajs
+    // all loaded trajs
     public ArrayList<Trajectory> trjs = new ArrayList<>();
-    // query, database set at each timestamp, we update them at each timestampe
-    public ArrayList<Trajectory> queries = new ArrayList<>();
-    public ArrayList<Trajectory> db = new ArrayList<>();
+    // query (A), database set (B)
+    public ArrayList<Trajectory> A = new ArrayList<>();
+    public ArrayList<Trajectory> B = new ArrayList<>();
+    // POIs
+    HashSet<Point> points = new HashSet<>();
+    // lon, lat range
+    public double minLon = 180;
+    public double minLat = 180;
+    public double maxLon = -180;
+    public double maxLat = -180;
+    // x, y range
+    public double minX = Double.MAX_VALUE;
+    public double minY = Double.MAX_VALUE;
+    public double maxX = -Double.MAX_VALUE;
+    public double maxY = -Double.MAX_VALUE;
+    // POI index
+    public QuadTree qStatic = new QuadTree();
+
+    public Loader(int dataNB, int POINB) {
+        getTrajectoryData(dataNB);
+        getQueryDB(dataNB);
+        System.out.println(maxY);
+        for (Trajectory trj : trjs) {
+            for (Location l : trj.locationSeq) {
+                minLon = minLon > l.longititude ? l.longititude : minLon;
+                minLat = minLat > l.latitude ? l.latitude : minLat;
+                maxLon = maxLon < l.longititude ? l.longititude : maxLon;
+                maxLat = maxLat < l.latitude ? l.latitude : maxLat;
+
+                minX = minX > l.x ? l.x : minX;
+                minY = minY > l.y ? l.y : minY;
+                maxX = maxX < l.x ? l.x : maxX;
+                maxY = maxY < l.y ? l.y : maxY;
+            }
+        }
+        System.out.println("Lon range: " + minLon + "-> " + maxLon);
+        System.out.println("Lat range: " + minLat + "-> " + maxLat);
+        System.out.println("X   range: " + minX + "-> " + maxX + ": " + (maxX - minX));
+        System.out.println("Y   range: " + minY + "-> " + maxY + ": " + (maxY - minY));
+        System.out.println();
+
+        // generate a set of random POI locations within (minX, maxX, minY, maxY)
+        points = generateRandomPoints(minX, minY, maxX, maxY, POINB);
+        // construct quadtree for quickly retrieve POIs within a given motion range
+        // QuadTree<Double> qDynamic = new QuadTree<>();
+        // qDynamic.DYNAMIC_MAX_OBJECTS = true;
+        // qDynamic.MAX_OBJ_TARGET_EXPONENT = 0.5;
+        qStatic.LEAF_MAX_OBJECTS = 100;
+        for (Point p : points) {
+            qStatic.place(p.x, p.y);
+        }
+
+    }
+
+    public HashSet<Point> generateRandomPoints(double minX, double minY, double maxX, double maxY, int n) {
+        Random random = new Random();
+        HashSet<Point> points = new HashSet<>();
+        while (points.size() < n) {
+            double x = minX + (maxX - minX) * random.nextDouble();
+            double y = minY + (maxY - minY) * random.nextDouble();
+            points.add(new Point(x, y));
+        }
+
+        return points;
+    }
 
     /**
-     * get all trajectory files in the given dierctory
+     * get all trajectory files in the given dierctory, for geo
+     * *
      * 
      * @param fileInput   the directory that stores trajectory files
      * @param allFileList store all trajectory files of the input fileInput in a
@@ -50,7 +115,7 @@ public class Loader {
             System.out.println("No such dataset!!");
             return;
         }
-        System.out.printf("Dataset name: %s Trajectory Size: %d \n", Settings.data, trjs.size());
+        System.out.printf("Dataset name: %s Trajectory11 Size: %d \n", Settings.data, trjs.size());
     }
 
     public void getGeolifeTrajectory(int readObjNum) {
@@ -72,15 +137,15 @@ public class Loader {
             try {
                 reader = new BufferedReader(new FileReader(f));
                 String lineString = null;
+                // omit the first 6 lines
                 for (int i = 0; i < 6; i++) {
                     lineString = reader.readLine();
                 }
                 // load one trajectory per line
                 ArrayList<Location> traj = new ArrayList<>();
-
                 while ((lineString = reader.readLine()) != null) {
                     String[] line = lineString.split(",");
-
+                    // omit short trajectories with length less than 5
                     if (line.length > 5) {
                         double real_lat = Double.parseDouble(line[0]);
                         double real_lon = Double.parseDouble(line[1]);
@@ -112,14 +177,6 @@ public class Loader {
 
     }
 
-    /**
-     * store all data in the form of TimeIntervalMR (Data) in ArrayList<Data>
-     * allData for
-     * Porto dataset
-     * 
-     * @param readObjNum
-     * @param maxSpeed
-     */
     public void getPortoTrajectory(int readObjNum) {
         BufferedReader reader;
         int id = 0;
@@ -170,14 +227,14 @@ public class Loader {
      * @param dataNB the query size, the remaining is stored in the database
      */
     public void getQueryDB(int dataNB) {
-        queries = new ArrayList<>();
-        db = new ArrayList<>();
+        A = new ArrayList<>();
+        B = new ArrayList<>();
         int size = trjs.size();
         assert size >= dataNB : "Lack of data!";
         for (int i = 0; i < dataNB; i++) {
             Trajectory trj = trjs.get(i);
-            queries.add(trj);
-            db.add(trj);
+            A.add(trj);
+            B.add(trj);
         }
     }
 

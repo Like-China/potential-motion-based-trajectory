@@ -25,13 +25,7 @@ public class Location {
     }
 
     public double distTo(Location that) {
-        // System.out.println(this.latitude +"/"+ this.longititude+"/"+
-        // that.latitude+"/"+ that.longititude);
-        // double dist1 = calculateHaversineDistance(this.latitude, this.longititude,
-        // that.latitude, that.longititude);
-        // double dist2 = Math.sqrt(Math.pow(that.x - this.x, 2) + Math.pow(that.y -
-        // this.y, 2));
-        // System.out.println(String.format("%.4f, %.4f", dist1, dist2));
+        // Distance in meters
         return Math.sqrt(Math.pow(that.x - this.x, 2) + Math.pow(that.y - this.y, 2));
     }
 

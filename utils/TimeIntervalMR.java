@@ -2,8 +2,10 @@ package utils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import evaluation.Settings;
+import poi.QuadTree;
 
 public class TimeIntervalMR {
 
@@ -21,7 +23,7 @@ public class TimeIntervalMR {
     public double angle;
     double[] MBR;
     // potential POI in this motion range
-    public ArrayList<Point[]> POIs = new ArrayList<>();
+    public ArrayList<TimePointMR> timePointMRs = new ArrayList<>();
 
     public TimeIntervalMR(Location curLocation, Location nextLocation, double maxSpeed) {
         assert curLocation.objectID == nextLocation.objectID;
@@ -31,11 +33,23 @@ public class TimeIntervalMR {
         this.maxSpeed = maxSpeed;
         this.angle = Math.atan2(nextLocation.y - curLocation.y, nextLocation.x - curLocation.x);
         location2ellipse();
-        generatePOI(Settings.sampleNum, Settings.intervalNum);
-
+        generateTimePointMRs(Settings.intervalNum);
     }
 
-    public ArrayList<Point[]> generatePOI(int sampleNum, int intervalNum) {
+    public ArrayList<Point> POIsWithinThis(QuadTree qTree) {
+        double[] mbr = this.getEllipseMBR();
+        List<Point> POIsCandidate = qTree.findAll(mbr[0], mbr[2], mbr[1], mbr[3]);
+        ArrayList<Point> res = new ArrayList<>();
+        for (Point p : POIsCandidate) {
+            if (isPointInEllipse(p.x, p.y)) {
+                res.add(p);
+            }
+        }
+        System.out.println(POIsCandidate.size() + "/" + res.size());
+        return res;
+    }
+
+    public ArrayList<TimePointMR> generateTimePointMRs(int intervalNum) {
         for (int i = 1; i < intervalNum + 2 - 1; i++) {
             // get time-point ranges of the two objects at several time points
             double Ax = curLocation.x;
@@ -44,25 +58,10 @@ public class TimeIntervalMR {
             double By = nextLocation.y;
             double r1 = maxSpeed * (nextLocation.timestamp - curLocation.timestamp) * i / intervalNum;
             double r2 = maxSpeed * (nextLocation.timestamp - curLocation.timestamp) * (intervalNum - i) / intervalNum;
-
-            // if the object is static, then it has no potential POIs
-            if (r1 == 0 || r2 == 0) {
-                Point[] pointOfThis = new Point[1];
-                pointOfThis[0] = new Point(Ax, Ay);
-                POIs.add(pointOfThis);
-                continue;
-            }
             TimePointMR MR = new TimePointMR(Ax, Ay, Bx, By, r1, r2);
-            // calculate the intersection simlarity using the uniform sampling methods
-            Point[] pointOfThis = MR.getUniformSamplingPoints(sampleNum);
-            for (Point p : pointOfThis) {
-                double d1 = Math.sqrt((p.x - Ax) * (p.x - Ax) + (p.y - Ay) * (p.y - Ay));
-                double d2 = Math.sqrt((p.x - Bx) * (p.x - Bx) + (p.y - By) * (p.y - By));
-                assert d1 + d2 <= 2 * a;
-            }
-            POIs.add(pointOfThis);
+            timePointMRs.add(MR);
         }
-        return POIs;
+        return timePointMRs;
     }
 
     // two locations form an ellipse
@@ -125,4 +124,17 @@ public class TimeIntervalMR {
         return new double[] { minX, maxX, minY, maxY };
     }
 
+    public boolean isPointInEllipse(double px, double py) {
+        // Translate point to ellipse's coordinate system
+        double translatedX = px - (curLocation.x + nextLocation.x) / 2;
+        double translatedY = py - (curLocation.y + nextLocation.y) / 2;
+        // Rotate point to align ellipse with the axes
+        double cosTheta = Math.cos(angle);
+        double sinTheta = Math.sin(angle);
+        double rotatedX = cosTheta * translatedX + sinTheta * translatedY;
+        double rotatedY = -sinTheta * translatedX + cosTheta * translatedY;
+        // Apply ellipse equation
+        double ellipseEquation = (rotatedX * rotatedX) / (a * a) + (rotatedY * rotatedY) / (b * b);
+        return ellipseEquation <= 1;
+    }
 }

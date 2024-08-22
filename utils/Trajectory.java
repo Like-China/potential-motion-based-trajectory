@@ -23,7 +23,7 @@ public class Trajectory {
         this.objectID = objID;
         this.locationSeq = locationSeq;
         this.sampleSize = locationSeq.size();
-        // generate time-interval notion ranges and Data class
+        // generate time-interval motion ranges and Data class
         trj2EllipseSeq();
     }
 
@@ -31,14 +31,12 @@ public class Trajectory {
         // use locationSeq to form ellpises
         maxSpeed = 0;
         minSpeed = Double.MAX_VALUE;
-        // get maximum speed
+        // get minimum/maximum speed
         for (int i = 0; i < this.sampleSize - 1; i++) {
             Location cur = locationSeq.get(i);
             Location next = locationSeq.get(i + 1);
+
             double speed = cur.distTo(next) / (next.timestamp - cur.timestamp);
-            // System.out.println(cur.distTo(next) + "/"
-            // + cur.distance(cur.latitude, cur.longititude, next.latitude,
-            // next.longititude));
             minSpeed = minSpeed < speed ? minSpeed : speed;
             maxSpeed = maxSpeed > speed ? maxSpeed : speed;
         }
@@ -52,8 +50,6 @@ public class Trajectory {
             Location cur = locationSeq.get(i);
             Location next = locationSeq.get(i + 1);
             TimeIntervalMR bead = new TimeIntervalMR(cur, next, maxSpeed);
-            // System.out.println(bead);
-            // System.out.println();
             Data data = new Data(bead);
             EllipseSeq.add(bead);
             DataSeq.add(data);
@@ -67,7 +63,7 @@ public class Trajectory {
         }
         // remove static or abnormal objects
         // a == 0 the timestampe does not change
-        if (maxSpeed >= 20) {
+        if (maxSpeed >= 0.03) {
             // System.out.println("Exceed Max Speed: " + maxSpeed);
             return true;
         }
