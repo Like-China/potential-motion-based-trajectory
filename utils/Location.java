@@ -13,7 +13,7 @@ public class Location {
         this.longititude = longititude;
         this.latitude = latitude;
         this.timestamp = timestamp;
-        double[] xy = this.MillierConvertion(latitude, longititude);
+        double[] xy = this.convertToCartesian(latitude, longititude);
         this.x = xy[0];
         this.y = xy[1];
     }
@@ -25,46 +25,66 @@ public class Location {
     }
 
     public double distTo(Location that) {
+        // System.out.println(this.latitude +"/"+ this.longititude+"/"+
+        // that.latitude+"/"+ that.longititude);
+        // double dist1 = calculateHaversineDistance(this.latitude, this.longititude,
+        // that.latitude, that.longititude);
+        // double dist2 = Math.sqrt(Math.pow(that.x - this.x, 2) + Math.pow(that.y -
+        // this.y, 2));
+        // System.out.println(String.format("%.4f, %.4f", dist1, dist2));
         return Math.sqrt(Math.pow(that.x - this.x, 2) + Math.pow(that.y - this.y, 2));
     }
 
-    // distance with (longtitude, latitude) locations
-    public double distance(double lat1, double lon1, double lat2, double lon2) {
-        double theta = lon1 - lon2;
-        double deg2rad_lat1 = deg2rad(lat1);
-        double deg2rad_lat2 = deg2rad(lat2);
-        double dist = Math.sin(deg2rad_lat1) * Math.sin(deg2rad_lat2)
-                + Math.cos(deg2rad_lat1) * Math.cos(deg2rad_lat2)
-                        * Math.cos(deg2rad(theta));
-        dist = Math.acos(dist);
-        dist = rad2deg(dist);
-        double miles = dist * 60 * 1.1515;
-        return miles * 1000;
+    /**
+     * Calculates the distance between two points on the Earth's surface specified
+     * by latitude and longitude.
+     * 
+     * @param lat1 Latitude of the first point in degrees
+     * @param lon1 Longitude of the first point in degrees
+     * @param lat2 Latitude of the second point in degrees
+     * @param lon2 Longitude of the second point in degrees
+     * @return Distance in kilometers
+     */
+    public double calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2) {
+        double EARTH_RADIUS_KM = 6371.0;
+        // Convert latitude and longitude from degrees to radians
+        double lat1Rad = Math.toRadians(lat1);
+        double lon1Rad = Math.toRadians(lon1);
+        double lat2Rad = Math.toRadians(lat2);
+        double lon2Rad = Math.toRadians(lon2);
+
+        // Differences in coordinates
+        double deltaLat = lat2Rad - lat1Rad;
+        double deltaLon = lon2Rad - lon1Rad;
+
+        // Haversine formula
+        double a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+                Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+                        Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        // Distance in kilometers
+        return EARTH_RADIUS_KM * c;
     }
 
-    public double deg2rad(double degree) {
-        return degree / 180 * Math.PI;
+    /*
+     * 
+     * Converts latitude and longitude to Cartesian coordinates (x, y).
+     *
+     * @param latitude Latitude in degrees
+     * 
+     * @param longitude Longitude in degrees
+     * 
+     * @return An array where index 0 is x and index 1 is y
+     */
+    public double[] convertToCartesian(double latitude, double longitude) {
+        double EARTH_RADIUS_KM = 6371.0;
+        // Convert latitude and longitude from degrees to radians
+        double latRad = Math.toRadians(latitude);
+        double lonRad = Math.toRadians(longitude);
+        // Calculate Cartesian coordinates
+        double x = EARTH_RADIUS_KM * Math.cos(latRad) * Math.cos(lonRad);
+        double y = EARTH_RADIUS_KM * Math.cos(latRad) * Math.sin(lonRad);
+        return new double[] { x, y };
     }
-
-    public double rad2deg(double radian) {
-        return radian * 180 / Math.PI;
-    }
-
-    // map coordinate
-    public double[] MillierConvertion(double lat, double lon) {
-        double L = 6381372 * Math.PI * 2;
-        double W = L;
-        double H = L / 2;
-        double mill = 2.3;
-        double x = lon * Math.PI / 180;
-        double y = lat * Math.PI / 180;
-        y = 1.25 * Math.log(Math.tan(0.25 * Math.PI + 0.4 * y));
-        x = (W / 2) + (W / (2 * Math.PI)) * x;
-        y = (H / 2) - (H / (2 * mill)) * y;
-        double[] result = new double[2];
-        result[0] = x;
-        result[1] = y;
-        return result;
-    }
-
 }
