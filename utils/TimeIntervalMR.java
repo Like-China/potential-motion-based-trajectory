@@ -2,12 +2,13 @@ package utils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 import evaluation.Settings;
 import poi.QuadTree;
 
-public class TimeIntervalMR {
+public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
 
     public Location curLocation;
     public Location nextLocation;
@@ -22,10 +23,66 @@ public class TimeIntervalMR {
     // angle
     public double angle;
     double[] MBR;
-    // potential POI in this motion range
     public ArrayList<TimePointMR> timePointMRs = new ArrayList<>();
+    // pois in this time-interval motion range
+    public HashSet<Point> POIs = new HashSet<>();
 
-    public TimeIntervalMR(Location curLocation, Location nextLocation, double maxSpeed) {
+    public int dimensions() {
+        return center.length;
+    }
+
+    public double get(int index) {
+        return center[index];
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof TimeIntervalMR) {
+            TimeIntervalMR that = (TimeIntervalMR) obj;
+            if (this.dimensions() != that.dimensions()) {
+                return false;
+            }
+            if (this.hashCode() != that.hashCode()) {
+                return false;
+            }
+            if (this.center != that.center) {
+                return false;
+            }
+            if (this.objectID != that.objectID) {
+                return false;
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int compareTo(TimeIntervalMR that) {
+        int dimensions = Math.min(this.dimensions(), that.dimensions());
+        for (int i = 0; i < dimensions; i++) {
+            double v1 = this.center[i];
+            double v2 = that.center[i];
+            if (v1 > v2) {
+                return +1;
+            }
+            if (v1 < v2) {
+                return -1;
+            }
+        }
+
+        if (this.dimensions() > dimensions) {
+            return +1;
+        }
+
+        if (that.dimensions() > dimensions) {
+            return -1;
+        }
+
+        return 0;
+    }
+
+    public TimeIntervalMR(Location curLocation, Location nextLocation, double maxSpeed, QuadTree qTree) {
         assert curLocation.objectID == nextLocation.objectID;
         this.objectID = curLocation.objectID;
         this.curLocation = curLocation;
@@ -33,23 +90,95 @@ public class TimeIntervalMR {
         this.maxSpeed = maxSpeed;
         this.angle = Math.atan2(nextLocation.y - curLocation.y, nextLocation.x - curLocation.x);
         location2ellipse();
-        generateTimePointMRs(Settings.intervalNum);
+        timePointMRs = generateTimePointMRs(Settings.intervalNum, qTree);
+        // POIs = POIsWithinThis(qTree);
     }
 
-    public ArrayList<Point> POIsWithinThis(QuadTree qTree) {
-        double[] mbr = this.getEllipseMBR();
-        List<Point> POIsCandidate = qTree.findAll(mbr[0], mbr[2], mbr[1], mbr[3]);
-        ArrayList<Point> res = new ArrayList<>();
-        for (Point p : POIsCandidate) {
-            if (isPointInEllipse(p.x, p.y)) {
-                res.add(p);
-            }
+    /* get POIs within this motion range */
+    // public ArrayList<Point> POIsWithinThis(QuadTree qTree) {
+    // double[] mbr = this.getEllipseMBR();
+    // List<Point> POIsCandidate = qTree.findAll(mbr[0], mbr[2], mbr[1], mbr[3]);
+    // ArrayList<Point> res = new ArrayList<>();
+    // for (Point p : POIsCandidate) {
+    // if (isPointInEllipse(p.x, p.y)) {
+    // res.add(p);
+    // }
+    // }
+    // // System.out.println(POIsCandidate.size() + "/" + res.size());
+    // return res;
+    // }
+
+    // Time-interval pruning
+    public double upperBound1To(TimeIntervalMR that) {
+        HashSet<Point> poiThisMR = this.POIs;
+        HashSet<Point> poiThatMR = that.POIs;
+        HashSet<Point> intersection = new HashSet(poiThisMR);
+
+        double simUB = 0;
+        intersection.retainAll(poiThatMR);
+        int maxIntersectionNB = intersection.size();
+        int m = this.timePointMRs.size();
+        if (poiThisMR.size() + poiThatMR.size() > 100) {
+            System.out.println(poiThisMR.size() + poiThatMR.size() + "/" +
+                    maxIntersectionNB);
         }
-        System.out.println(POIsCandidate.size() + "/" + res.size());
-        return res;
+        // if (maxIntersectionNB == 0) {
+        // return 0;
+        // }
+        for (int i = 0; i < m; i++) {
+            TimePointMR tpThis = this.timePointMRs.get(i);
+            TimePointMR tpThat = that.timePointMRs.get(i);
+            ArrayList<Point> poiThis = tpThis.POIs;
+            ArrayList<Point> poiThat = tpThat.POIs;
+            if (poiThis.size() == 0 || poiThat.size() == 0) {
+                continue;
+            }
+            simUB += Math.min(1, (maxIntersectionNB / poiThis.size()) * (maxIntersectionNB / poiThat.size()));
+        }
+        return simUB / m;
     }
 
-    public ArrayList<TimePointMR> generateTimePointMRs(int intervalNum) {
+    // Time-Point pruning
+    public double upperBound2To(TimeIntervalMR that) {
+        double simUB = 0;
+        int m = this.timePointMRs.size();
+        for (int i = 0; i < m; i++) {
+            TimePointMR tpThis = this.timePointMRs.get(i);
+            TimePointMR tpThat = that.timePointMRs.get(i);
+            ArrayList<Point> poiThis = tpThis.POIs;
+            ArrayList<Point> poiThat = tpThat.POIs;
+            int thisSize = poiThis.size();
+            int thatSize = poiThat.size();
+            if (thisSize == 0 || thatSize == 0) {
+                continue;
+            }
+            simUB += Math.min(thisSize, thatSize) / Math.max(thisSize, thatSize);
+        }
+        return simUB / m;
+    }
+
+    // the exact intersection similarity to another time-interval motion range
+    public double simTo(TimeIntervalMR that, QuadTree qTree) {
+        assert this.timePointMRs.size() == that.timePointMRs.size();
+        double sim = 0;
+        int m = this.timePointMRs.size();
+        for (int i = 0; i < m; i++) {
+            TimePointMR tpThis = this.timePointMRs.get(i);
+            TimePointMR tpThat = that.timePointMRs.get(i);
+            ArrayList<Point> poiThis = tpThis.POIs;
+            ArrayList<Point> poiThat = tpThat.POIs;
+            if (poiThis.size() == 0 || poiThat.size() == 0) {
+                break;
+            }
+            ArrayList<Point> intersection = new ArrayList<>(poiThis);
+            intersection.retainAll(poiThat);
+            sim += (intersection.size() / poiThis.size()) * (intersection.size() / poiThat.size());
+        }
+        return sim / m;
+    }
+
+    /* generate a set of time-point motion ranges of size 'intervalNum' */
+    public ArrayList<TimePointMR> generateTimePointMRs(int intervalNum, QuadTree qTree) {
         for (int i = 1; i < intervalNum + 2 - 1; i++) {
             // get time-point ranges of the two objects at several time points
             double Ax = curLocation.x;
@@ -58,8 +187,10 @@ public class TimeIntervalMR {
             double By = nextLocation.y;
             double r1 = maxSpeed * (nextLocation.timestamp - curLocation.timestamp) * i / intervalNum;
             double r2 = maxSpeed * (nextLocation.timestamp - curLocation.timestamp) * (intervalNum - i) / intervalNum;
-            TimePointMR MR = new TimePointMR(Ax, Ay, Bx, By, r1, r2);
+            TimePointMR MR = new TimePointMR(Ax, Ay, Bx, By, r1, r2, qTree);
             timePointMRs.add(MR);
+            // add into time-interval POIs
+            POIs.addAll(MR.POIs);
         }
         return timePointMRs;
     }
@@ -72,7 +203,7 @@ public class TimeIntervalMR {
         a = maxSpeed * (nextLocation.timestamp - curLocation.timestamp) / 2;
         b = Math.sqrt(4 * a * a
                 - (Math.pow(curLocation.x - nextLocation.x, 2) + Math.pow(curLocation.y - nextLocation.y, 2))) / 2;
-        if (a <= 0 || b <= 0 || a <= b) {
+        if (a <= 0 || b <= 0 || a < b) {
             System.out.println(nextLocation.timestamp - curLocation.timestamp);
             System.out.println("Error");
             System.out.println(a + "/" + b + "/" + maxSpeed + "/" + speed);
@@ -86,6 +217,7 @@ public class TimeIntervalMR {
                 + String.format("\nspeed: %.3f maxSpeed: %.3f a: %.3f b %.3f", speed, maxSpeed, a, b);
     }
 
+    // get MBR of this time-interval motion range
     public double[] getEllipseMBR() {
         double centerX = center[0];
         double centerY = center[1];
@@ -124,6 +256,7 @@ public class TimeIntervalMR {
         return new double[] { minX, maxX, minY, maxY };
     }
 
+    // check if a point is within this time-interval motion range or not
     public boolean isPointInEllipse(double px, double py) {
         // Translate point to ellipse's coordinate system
         double translatedX = px - (curLocation.x + nextLocation.x) / 2;

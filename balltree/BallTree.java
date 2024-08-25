@@ -7,7 +7,7 @@ import utils.TimeIntervalMR;
 public class BallTree {
     public int minLeafNB;
     public int pointNB;
-    public ArrayList<TimeIntervalMR> db = new ArrayList<>();
+    public TimeIntervalMR[] db;
     public ArrayList<double[]> input = new ArrayList<>();
     public ArrayList<Double> dbRadius = new ArrayList<>();
     public int[] indexes = null;
@@ -16,10 +16,10 @@ public class BallTree {
     // the number of node access when conduct queries
     public int searchCount = 0;
 
-    public BallTree(int minLeafNB, ArrayList<TimeIntervalMR> db) {
+    public BallTree(int minLeafNB, TimeIntervalMR[] db) {
         this.minLeafNB = minLeafNB;
         this.db = db;
-        this.pointNB = db.size();
+        this.pointNB = db.length;
         this.indexes = new int[pointNB];
         for (TimeIntervalMR data : db) {
             this.input.add(data.center);
@@ -172,7 +172,7 @@ public class BallTree {
             for (int i = node.idxStart; i < node.idxEnd + 1; i++) {
                 double dist = this.getDistance(target, input.get(indexes[i]));
                 if (dist <= range + dbRadius.get(indexes[i])) {
-                    res.add(db.get(indexes[i]));
+                    res.add(db[indexes[i]]);
                 }
             }
         } else {

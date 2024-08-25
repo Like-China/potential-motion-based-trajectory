@@ -1,11 +1,13 @@
 package evaluation;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.PriorityQueue;
 
-import utils.Location;
-import utils.NN;
+import poi.QuadTree;
 import utils.Point;
 import utils.TimeIntervalMR;
 import utils.TimePointMR;
@@ -13,32 +15,59 @@ import utils.Trajectory;
 
 public class Test {
 
-    public static void teseGetPOI(ArrayList<Trajectory> A, ArrayList<Trajectory> B, Loader l) {
+    // Write results log
+    public static void writeFile(String setInfo, String otherInfo) {
+        try {
+            File writeName = new File(Settings.data + "out.txt");
+            writeName.createNewFile();
+            try (FileWriter writer = new FileWriter(writeName, true);
+                    BufferedWriter out = new BufferedWriter(writer)) {
+                out.write(setInfo);
+                out.newLine();
+                out.write(otherInfo);
+                out.newLine();
+                out.flush();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void testGetPOI(ArrayList<TimeIntervalMR> MR_A, Loader l) {
         // test the POI retrieve
         long t1 = System.currentTimeMillis();
-        for (Trajectory trj : A) {
-            for (TimeIntervalMR mr : trj.EllipseSeq) {
-                List<Point> res = new ArrayList<>();
-                double[] mbr = mr.getEllipseMBR();
-                res = l.qStatic.findAll(mbr[0], mbr[2], mbr[1], mbr[3]);
+        for (TimeIntervalMR mr : MR_A) {
+            List<Point> res = new ArrayList<>();
+            double[] mbr = mr.getEllipseMBR();
+            res = l.qStatic.findAll(mbr[0], mbr[2], mbr[1], mbr[3]);
 
-                // mr.POIsWithinThis(l.qStatic);
+            // mr.POIsWithinThis(l.qStatic);
 
-                System.out.println(mr.timePointMRs.size());
-                for (TimePointMR tMR : mr.timePointMRs) {
-                    tMR.POIsWithinThis(l.qStatic);
-                }
-
-                // int count = 0;
-                // for (Point db : l.points) {
-                // if (db.x >= mbr[0] && db.x <= mbr[1] && db.y >= mbr[2] && db.y <= mbr[3]) {
-                // count++;
-                // }
-                // }
-                // assert res.size() == count;
+            System.out.println(mr.timePointMRs.size());
+            for (TimePointMR tMR : mr.timePointMRs) {
+                tMR.POIsWithinThis(l.qStatic);
             }
+
+            // int count = 0;
+            // for (Point db : l.points) {
+            // if (db.x >= mbr[0] && db.x <= mbr[1] && db.y >= mbr[2] && db.y <= mbr[3]) {
+            // count++;
+            // }
+            // }
+            // assert res.size() == count;
         }
         System.out.println(System.currentTimeMillis() - t1);
+    }
+
+    // Given a query interval I=[i,j], we get all MR(o,I) from trajectories.
+    public static TimeIntervalMR[] getMRSet(ArrayList<Trajectory> trjs, int start, int end, QuadTree qTree) {
+        assert start >= 0;
+        assert end <= Settings.tsNB;
+        TimeIntervalMR[] mrs = new TimeIntervalMR[trjs.size()];
+        for (int i = 0; i < trjs.size(); i++) {
+            mrs[i] = trjs.get(i).getIntervalMR(start, end, qTree);
+        }
+        return mrs;
     }
 
     public static void main(String[] args) {
@@ -47,41 +76,50 @@ public class Test {
         ArrayList<Trajectory> A = l.A;
         ArrayList<Trajectory> B = l.B;
         double theta = Settings.simThreshold;
-        teseGetPOI(A, B, l);
+        QuadTree poiTree = l.qStatic;
 
-        System.exit(0);
-        // construct ball-tree index then pruning
-        BJAlg bj = new BJAlg(A, B, Settings.tsNB, Settings.repartitionRatio, Settings.minLeafNB);
+        int start = 0;
+        int end = 1;
+        TimeIntervalMR[] MR_A = getMRSet(A, start, end, poiTree);
+        TimeIntervalMR[] MR_B = getMRSet(B, start, end, poiTree);
+        // teseGetPOI(MR_A, l);
 
-        int bjMatchNB = bj.rangeJoin(A, B, theta);
-        System.out.println(
-                String.format("BT RJoin MatchNB: %d CTime: %d FTime: %d\n", bjMatchNB, bj.cTime, bj.rangeJoinTime));
-
-        ArrayList<PriorityQueue<NN>> bjNNRes = bj.nnJoin(A, B, Settings.k);
-        System.out.println(String.format("Ball-tree   NN-Join CTime: %d FTime: %d\n", bj.cTime, bj.nnJoinTime));
-
-        // Brute-Force solution
-        BFAlg bf = new BFAlg();
-
-        int bfMatchNB = bf.rangeJoin(A, B, theta);
-        System.out.println(String.format("BF Range-Join MatchNB: %d Time cost: %d",
+        // Basic Filter-and-refine solution
+        BFAlg bf = new BFAlg(poiTree);
+        int bfMatchNB = bf.tbJoin(MR_A, MR_B, theta);
+        System.out.println(String.format("BFR Range-Join MatchNB: %d Time cost: %d\n",
                 bfMatchNB, bf.rangeJoinTime));
-        assert bfMatchNB == bjMatchNB;
+        // MTree
+        MJAlg mt = new MJAlg(poiTree);
+        int mtMatchNB = mt.tbJoin(MR_A, MR_B, theta);
+        System.out.println(String.format("MTR RJoin MatchNB: %d CTime: %d FTime: %d\n",
+                mtMatchNB, mt.cTime, mt.rangeJoinTime));
+        // Ball-tree index then pruning
+        BJAlg bj = new BJAlg(MR_A, MR_B, Settings.repartitionRatio, Settings.minLeafNB, poiTree);
+        int bjMatchNB = bj.tbJoin(MR_A, MR_B, theta);
+        System.out.println(
+                String.format("BTR RJoin MatchNB: %d CTime: %d FTime: %d\n", bjMatchNB, bj.cTime, bj.rangeJoinTime));
 
-        ArrayList<PriorityQueue<NN>> bfNNRes = bf.nnJoin(A, B, Settings.k);
-        System.out.println(String.format("Brute-Force NN-Join Time cost: %d",
-                bf.nnJoinTime));
+        // assert bfMatchNB == bjMatchNB;
 
-        assert bfNNRes.size() == bjNNRes.size();
-        for (int i = 0; i < bfNNRes.size(); i++) {
-            PriorityQueue<NN> bfNNs = bfNNRes.get(i);
-            PriorityQueue<NN> bjNNs = bjNNRes.get(i);
-            for (int j = 0; j < bfNNs.size(); j++) {
-                NN bfNN = bfNNs.poll();
-                NN bjNN = bjNNs.poll();
-                assert bfNN.sim == bjNN.sim;
-            }
-        }
+        // ArrayList<PriorityQueue<NN>> bfNNRes = bf.nnJoin(A, B, Settings.k);
+        // System.out.println(String.format("Brute-Force NN-Join Time cost: %d",
+        // bf.nnJoinTime));
+
+        // assert bfNNRes.size() == bjNNRes.size();
+        // for (int i = 0; i < bfNNRes.size(); i++) {
+        // PriorityQueue<NN> bfNNs = bfNNRes.get(i);
+        // PriorityQueue<NN> bjNNs = bjNNRes.get(i);
+        // for (int j = 0; j < bfNNs.size(); j++) {
+        // NN bfNN = bfNNs.poll();
+        // NN bjNN = bjNNs.poll();
+        // assert bfNN.sim == bjNN.sim;
+        // }
+        // }
+
+        // ArrayList<PriorityQueue<NN>> bjNNRes = bj.nnJoin(A, B, Settings.k);
+        // System.out.println(String.format("Ball-tree NN-Join CTime: %d FTime: %d\n",
+        // bj.cTime, bj.nnJoinTime));
 
         // construct M-tree index then pruning
         // startTime = System.currentTimeMillis();

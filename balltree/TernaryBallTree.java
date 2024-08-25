@@ -8,7 +8,7 @@ public class TernaryBallTree extends BallTree {
 
     public double repartirionRatio = -1;
 
-    public TernaryBallTree(int minLeafNB, ArrayList<TimeIntervalMR> db, double repartirionRatio) {
+    public TernaryBallTree(int minLeafNB, TimeIntervalMR[] db, double repartirionRatio) {
         super(minLeafNB, db);
         this.repartirionRatio = repartirionRatio;
     }
@@ -231,7 +231,7 @@ public class TernaryBallTree extends BallTree {
             for (int i = node.idxStart; i < node.idxEnd + 1; i++) {
                 double dist = this.getDistance(target, input.get(indexes[i]));
                 if (dist <= range + dbRadius.get(indexes[i])) {
-                    res.add(db.get(indexes[i]));
+                    res.add(db[indexes[i]]);
                 }
             }
         } else {

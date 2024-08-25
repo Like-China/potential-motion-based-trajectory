@@ -6,9 +6,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import utils.Pair;
-import utils.Utils;
-
 /**
  * Some pre-defined implementations of {@linkplain PromotionFunction promotion
  * functions}.

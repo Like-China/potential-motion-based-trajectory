@@ -1,4 +1,4 @@
-package utils;
+package mtree;
 
 /**
  * A pair of objects of the same type.

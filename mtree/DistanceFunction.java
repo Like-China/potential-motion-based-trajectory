@@ -6,7 +6,7 @@ package mtree;
  * @param <DATA> The type of the data objects.
  */
 public interface DistanceFunction<DATA> {
-	
+
 	public double calculate(DATA data1, DATA data2);
-	
+
 }

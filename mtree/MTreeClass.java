@@ -1,48 +1,49 @@
 package mtree;
 
 import java.util.Set;
-import utils.Data;
-import utils.Pair;
+
+import utils.TimeIntervalMR;
 
 public class MTreeClass extends MTree {
 
-	private static final PromotionFunction<Data> nonRandomPromotion = new PromotionFunction<Data>() {
+	private static final PromotionFunction<TimeIntervalMR> nonRandomPromotion = new PromotionFunction<TimeIntervalMR>() {
 		@Override
-		public Pair<Data> process(Set<Data> dataSet, DistanceFunction<? super Data> distanceFunction) {
-			// return Utils.minMax(dataSet);
-			Data[] pair = new Data[2];
-			int i = 0;
-			for (Data data : dataSet) {
-				pair[i] = data;
-				i++;
-				if (i > 1)
-					break;
-			}
-			return new Pair<>(pair[0], pair[1]);
-			// List<Data> promotedList = Utils.randomSample(dataSet, 2);
-			// return new Pair<Data>(promotedList.get(0), promotedList.get(1));
+		public Pair<TimeIntervalMR> process(Set<TimeIntervalMR> dataSet,
+				DistanceFunction<? super TimeIntervalMR> distanceFunction) {
+			return Utils.minMax(dataSet);
+			// TimeIntervalMR[] pair = new TimeIntervalMR[2];
+			// int i = 0;
+			// for (TimeIntervalMR data : dataSet) {
+			// pair[i] = data;
+			// i++;
+			// if (i > 1)
+			// break;
+			// }
+			// return new Pair<>(pair[0], pair[1]);
+			// List<TimeIntervalMR> promotedList = Utils.randomSample(dataSet, 2);
+			// return new Pair<TimeIntervalMR>(promotedList.get(0), promotedList.get(1));
 		}
 	};
 
 	public MTreeClass() {
 		super(10, DistanceFunctions.EUCLIDEAN,
-				new ComposedSplitFunction<Data>(
+				new ComposedSplitFunction<TimeIntervalMR>(
 						nonRandomPromotion,
-						new PartitionFunctions.BalancedPartition<Data>()));
+						new PartitionFunctions.BalancedPartition<TimeIntervalMR>()));
 	}
 
-	public void add(Data data) {
+	public void add(TimeIntervalMR data) {
 		super.add(data);
 		// _check();
 	}
 
-	public boolean remove(Data data) {
+	public boolean remove(TimeIntervalMR data) {
 		boolean result = super.remove(data);
 		// _check();
 		return result;
 	}
 
-	DistanceFunction<? super Data> getDistanceFunction() {
+	DistanceFunction<? super TimeIntervalMR> getDistanceFunction() {
 		return distanceFunction;
 	}
 };

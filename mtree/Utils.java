@@ -1,16 +1,10 @@
-package utils;
+package mtree;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
-
-import evaluation.Settings;
 
 /**
  * Some utilities.
@@ -53,22 +47,29 @@ public final class Utils {
 		return new Pair<T>(min, max);
 	}
 
-	// Write results log
-	public static void writeFile(String setInfo, String otherInfo) {
-		try {
-			File writeName = new File(Settings.data + "out.txt");
-			writeName.createNewFile();
-			try (FileWriter writer = new FileWriter(writeName, true);
-					BufferedWriter out = new BufferedWriter(writer)) {
-				out.write(setInfo);
-				out.newLine();
-				out.write(otherInfo);
-				out.newLine();
-				out.flush();
+	/**
+	 * Randomly chooses elements from the collection.
+	 * 
+	 * @param collection The collection.
+	 * @param n          The number of elements to choose.
+	 * @param <T>        The type of the elements.
+	 * @return A list with the chosen elements.
+	 */
+	public static <T> List<T> randomSample(Collection<T> collection, int n) {
+		List<T> list = new ArrayList<T>(collection);
+		List<T> sample = new ArrayList<T>(n);
+		Random random = new Random();
+		while (n > 0 && !list.isEmpty()) {
+			int index = random.nextInt(list.size());
+			sample.add(list.get(index));
+			int indexLast = list.size() - 1;
+			T last = list.remove(indexLast);
+			if (index < indexLast) {
+				list.set(index, last);
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
+			n--;
 		}
+		return sample;
 	}
 
 }

@@ -9,15 +9,17 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import mtree.SplitFunction.SplitResult;
 import utils.TimeIntervalMR;
-import utils.Data;
 
 /**
  * The main class that implements the M-Tree.
  *
- * @param <Data> The type of Data that will be indexed by the M-Tree. Objects of
- *               this type are stored in HashMaps and HashSets, so their
- *               {@code hashCode()} and {@code equals()} methods must be
- *               consistent.
+ * @param <TimeIntervalMR> The type of TimeIntervalMR that will be indexed by
+ *                         the M-Tree. Objects of
+ *                         this type are stored in HashMaps and HashSets, so
+ *                         their
+ *                         {@code hashCode()} and {@code equals()} methods must
+ *                         be
+ *                         consistent.
  */
 public class MTree {
 	// Exception classes
@@ -65,7 +67,7 @@ public class MTree {
 	 * first results.
 	 */
 	public class Query {
-		private Data Data;
+		private TimeIntervalMR TimeIntervalMR;
 		private double range;
 
 		private class ItemWithDistances<U> implements Comparable<ItemWithDistances<U>> {
@@ -98,7 +100,8 @@ public class MTree {
 			if (MTree.this.root == null) {
 				return rangeRes;
 			}
-			double distance = MTree.this.distanceFunction.calculate(Query.this.Data, MTree.this.root.Data);
+			double distance = MTree.this.distanceFunction.calculate(Query.this.TimeIntervalMR,
+					MTree.this.root.TimeIntervalMR);
 			double minDistance = Math.max(distance - MTree.this.root.radius, 0.0);
 
 			pendingQueue.add(new ItemWithDistances<Node>(MTree.this.root, distance, minDistance));
@@ -107,13 +110,14 @@ public class MTree {
 				ItemWithDistances<Node> pending = pendingQueue.poll();
 				Node node = pending.item;
 				for (IndexItem child : node.children.values()) {
-					if (Math.abs(pending.distance - child.distanceToParent) <= Query.this.range + child.radius
-							+ pending.distance) {
-						double childDistance = MTree.this.distanceFunction.calculate(Query.this.Data, child.Data);
+					// 20240825 change
+					if (Math.abs(pending.distance - child.distanceToParent) <= Query.this.range + child.radius) {
+						double childDistance = MTree.this.distanceFunction.calculate(Query.this.TimeIntervalMR,
+								child.TimeIntervalMR);
 						double childMinDistance = Math.max(childDistance, 0.0);
 						if (childMinDistance <= Query.this.range + child.radius) {
 							if (child instanceof MTree.Entry) {
-								rangeRes.add(child.Data.bead);
+								rangeRes.add(child.TimeIntervalMR);
 							} else {
 								Node childNode = (Node) child;
 								pendingQueue
@@ -127,8 +131,8 @@ public class MTree {
 			return rangeRes;
 		}
 
-		private Query(Data Data, double range, int limit) {
-			this.Data = Data;
+		private Query(TimeIntervalMR TimeIntervalMR, double range, int limit) {
+			this.TimeIntervalMR = TimeIntervalMR;
 			this.range = range;
 			pendingQueue = new PriorityQueue<ItemWithDistances<Node>>();
 			rangeRes = new ArrayList<>();
@@ -140,22 +144,22 @@ public class MTree {
 	 * The default minimum capacity of nodes in an M-Tree, when not specified in
 	 * the constructor call.
 	 */
-	public static final int DEFAULT_MIN_NODE_CAPACITY = 50;
+	public static final int DEFAULT_MIN_NODE_CAPACITY = 10;
 
 	protected int minNodeCapacity;
 	protected int maxNodeCapacity;
-	public DistanceFunction<? super Data> distanceFunction;
-	protected SplitFunction<Data> splitFunction;
+	public DistanceFunction<? super TimeIntervalMR> distanceFunction;
+	protected SplitFunction<TimeIntervalMR> splitFunction;
 	public Node root;
 
 	/**
 	 * Constructs an M-Tree with the specified distance function.
 	 * 
 	 * @param distanceFunction The object used to calculate the distance between
-	 *                         two Data objects.
+	 *                         two TimeIntervalMR objects.
 	 */
-	public MTree(DistanceFunction<? super Data> distanceFunction,
-			SplitFunction<Data> splitFunction) {
+	public MTree(DistanceFunction<? super TimeIntervalMR> distanceFunction,
+			SplitFunction<TimeIntervalMR> splitFunction) {
 		this(DEFAULT_MIN_NODE_CAPACITY, distanceFunction, splitFunction);
 	}
 
@@ -165,13 +169,13 @@ public class MTree {
 	 * 
 	 * @param minNodeCapacity  The minimum capacity for the nodes of the tree.
 	 * @param distanceFunction The object used to calculate the distance between
-	 *                         two Data objects.
+	 *                         two TimeIntervalMR objects.
 	 * @param splitFunction    The object used to process the split of nodes if
 	 *                         they are full when a new child must be added.
 	 */
 	public MTree(int minNodeCapacity,
-			DistanceFunction<? super Data> distanceFunction,
-			SplitFunction<Data> splitFunction) {
+			DistanceFunction<? super TimeIntervalMR> distanceFunction,
+			SplitFunction<TimeIntervalMR> splitFunction) {
 		this(minNodeCapacity, 2 * minNodeCapacity - 1, distanceFunction, splitFunction);
 	}
 
@@ -182,22 +186,22 @@ public class MTree {
 	 * @param minNodeCapacity  The minimum capacity for the nodes of the tree.
 	 * @param maxNodeCapacity  The maximum capacity for the nodes of the tree.
 	 * @param distanceFunction The object used to calculate the distance between
-	 *                         two Data objects.
+	 *                         two TimeIntervalMR objects.
 	 * @param splitFunction    The object used to process the split of nodes if
 	 *                         they are full when a new child must be added.
 	 */
 	public MTree(int minNodeCapacity, int maxNodeCapacity,
-			DistanceFunction<? super Data> distanceFunction,
-			SplitFunction<Data> splitFunction) {
+			DistanceFunction<? super TimeIntervalMR> distanceFunction,
+			SplitFunction<TimeIntervalMR> splitFunction) {
 		if (minNodeCapacity < 2 || maxNodeCapacity <= minNodeCapacity ||
 				distanceFunction == null) {
 			throw new IllegalArgumentException();
 		}
 
 		if (splitFunction == null) {
-			splitFunction = new ComposedSplitFunction<Data>(
-					new PromotionFunctions.RandomPromotion<Data>(),
-					new PartitionFunctions.BalancedPartition<Data>());
+			splitFunction = new ComposedSplitFunction<TimeIntervalMR>(
+					new PromotionFunctions.RandomPromotion<TimeIntervalMR>(),
+					new PartitionFunctions.BalancedPartition<TimeIntervalMR>());
 		}
 
 		this.minNodeCapacity = minNodeCapacity;
@@ -208,33 +212,33 @@ public class MTree {
 	}
 
 	/**
-	 * Adds and indexes a Data object.
+	 * Adds and indexes a TimeIntervalMR object.
 	 * 
 	 * <p>
 	 * An object that is already indexed should not be added. There is no
 	 * validation regarding this, and the behavior is undefined if done.
 	 * 
-	 * @param Data The Data object to index.
+	 * @param TimeIntervalMR The TimeIntervalMR object to index.
 	 */
-	public void add(Data Data) {
+	public void add(TimeIntervalMR TimeIntervalMR) {
 		if (root == null) {
-			root = new RootLeafNode(Data);
+			root = new RootLeafNode(TimeIntervalMR);
 			try {
-				root.addData(Data, 0);
+				root.addData(TimeIntervalMR, 0);
 			} catch (SplitNodeReplacement e) {
 				throw new RuntimeException("Should never happen!");
 			}
 		} else {
-			double distance = distanceFunction.calculate(Data, root.Data);
+			double distance = distanceFunction.calculate(TimeIntervalMR, root.TimeIntervalMR);
 			try {
-				root.addData(Data, distance);
+				root.addData(TimeIntervalMR, distance);
 			} catch (SplitNodeReplacement e) {
-				Node newRoot = new RootNode(Data);
+				Node newRoot = new RootNode(TimeIntervalMR);
 				root = newRoot;
 				for (int i = 0; i < e.newNodes.length; i++) {
 					@SuppressWarnings("unchecked")
 					Node newNode = (Node) e.newNodes[i];
-					distance = distanceFunction.calculate(root.Data, newNode.Data);
+					distance = distanceFunction.calculate(root.TimeIntervalMR, newNode.TimeIntervalMR);
 					root.addChild(newNode, distance);
 				}
 			}
@@ -242,19 +246,19 @@ public class MTree {
 	}
 
 	/**
-	 * Removes a Data object from the M-Tree.
+	 * Removes a TimeIntervalMR object from the M-Tree.
 	 * 
-	 * @param Data The Data object to be removed.
+	 * @param TimeIntervalMR The TimeIntervalMR object to be removed.
 	 * @return {@code true} if and only if the object was found.
 	 */
-	public boolean remove(Data Data) {
+	public boolean remove(TimeIntervalMR TimeIntervalMR) {
 		if (root == null) {
 			return false;
 		}
 
-		double distanceToRoot = distanceFunction.calculate(Data, root.Data);
+		double distanceToRoot = distanceFunction.calculate(TimeIntervalMR, root.TimeIntervalMR);
 		try {
-			root.removeData(Data, distanceToRoot);
+			root.removeData(TimeIntervalMR, distanceToRoot);
 		} catch (RootNodeReplacement e) {
 			@SuppressWarnings("unchecked")
 			Node newRoot = (Node) e.newRoot;
@@ -270,12 +274,12 @@ public class MTree {
 	/**
 	 * Performs a nearest-neighbors query on the M-Tree, constrained by distance.
 	 * 
-	 * @param queryData The query Data object.
+	 * @param queryData The query TimeIntervalMR object.
 	 * @param range     The maximum distance from {@code queryData} to fetched
 	 *                  neighbors.
 	 * @return A {@link Query} object used to iterate on the results.
 	 */
-	public Query getNearestByRange(Data queryData, double range) {
+	public Query getNearestByRange(TimeIntervalMR queryData, double range) {
 		return getNearest(queryData, range, Integer.MAX_VALUE);
 	}
 
@@ -283,23 +287,23 @@ public class MTree {
 	 * Performs a nearest-neighbor query on the M-Tree, constrained by distance
 	 * and/or the number of neighbors.
 	 * 
-	 * @param queryData The query Data object.
+	 * @param queryData The query TimeIntervalMR object.
 	 * @param range     The maximum distance from {@code queryData} to fetched
 	 *                  neighbors.
 	 * @param limit     The maximum number of neighbors to fetch.
 	 * @return A {@link Query} object used to iterate on the results.
 	 */
-	public Query getNearest(Data queryData, double range, int limit) {
+	public Query getNearest(TimeIntervalMR queryData, double range, int limit) {
 		return new Query(queryData, range, limit);
 	}
 
 	/**
 	 * Performs a nearest-neighbor query on the M-Tree, without constraints.
 	 * 
-	 * @param queryData The query Data object.
+	 * @param queryData The query TimeIntervalMR object.
 	 * @return A {@link Query} object used to iterate on the results.
 	 */
-	public Query getNearest(Data queryData) {
+	public Query getNearest(TimeIntervalMR queryData) {
 		return new Query(queryData, Double.POSITIVE_INFINITY, Integer.MAX_VALUE);
 	}
 
@@ -310,13 +314,13 @@ public class MTree {
 	}
 
 	private class IndexItem {
-		Data Data;
+		TimeIntervalMR TimeIntervalMR;
 		protected double radius;
 		double distanceToParent;
 
-		private IndexItem(Data Data) {
-			this.Data = Data;
-			this.radius = Data.radius;
+		private IndexItem(TimeIntervalMR TimeIntervalMR) {
+			this.TimeIntervalMR = TimeIntervalMR;
+			this.radius = TimeIntervalMR.a;
 			this.distanceToParent = -1;
 		}
 
@@ -339,13 +343,14 @@ public class MTree {
 
 	public abstract class Node extends IndexItem {
 
-		protected Map<Data, IndexItem> children = new HashMap<Data, IndexItem>();
+		protected Map<TimeIntervalMR, IndexItem> children = new HashMap<TimeIntervalMR, IndexItem>();
 		protected Rootness rootness;
-		protected Leafness<Data> leafness;
+		protected Leafness<TimeIntervalMR> leafness;
 
-		private <R extends NodeTrait & Rootness, L extends NodeTrait & Leafness<Data>> Node(Data Data, R rootness,
+		private <R extends NodeTrait & Rootness, L extends NodeTrait & Leafness<TimeIntervalMR>> Node(
+				TimeIntervalMR TimeIntervalMR, R rootness,
 				L leafness) {
-			super(Data);
+			super(TimeIntervalMR);
 
 			rootness.thisNode = this;
 			this.rootness = rootness;
@@ -354,8 +359,8 @@ public class MTree {
 			this.leafness = leafness;
 		}
 
-		private final void addData(Data Data, double distance) throws SplitNodeReplacement {
-			doAddData(Data, distance);
+		private final void addData(TimeIntervalMR TimeIntervalMR, double distance) throws SplitNodeReplacement {
+			doAddData(TimeIntervalMR, distance);
 			checkMaxCapacity();
 		}
 
@@ -365,10 +370,10 @@ public class MTree {
 			_checkMaxCapacity();
 
 			int childHeight = -1;
-			for (Map.Entry<Data, IndexItem> e : children.entrySet()) {
-				Data Data = e.getKey();
+			for (Map.Entry<TimeIntervalMR, IndexItem> e : children.entrySet()) {
+				TimeIntervalMR TimeIntervalMR = e.getKey();
 				IndexItem child = e.getValue();
-				assert child.Data.equals(Data);
+				assert child.TimeIntervalMR.equals(TimeIntervalMR);
 
 				_checkChildClass(child);
 				_checkChildMetrics(child);
@@ -383,32 +388,31 @@ public class MTree {
 			return childHeight + 1;
 		}
 
-		protected void doAddData(Data Data, double distance) {
-			leafness.doAddData(Data, distance);
+		protected void doAddData(TimeIntervalMR TimeIntervalMR, double distance) {
+			leafness.doAddData(TimeIntervalMR, distance);
 		}
 
-		protected void doRemoveData(Data Data, double distance) throws DataNotFound {
-			leafness.doRemoveData(Data, distance);
+		protected void doRemoveData(TimeIntervalMR TimeIntervalMR, double distance) throws DataNotFound {
+			leafness.doRemoveData(TimeIntervalMR, distance);
 		}
 
 		private final void checkMaxCapacity() throws SplitNodeReplacement {
 			if (children.size() > MTree.this.maxNodeCapacity) {
-				DistanceFunction<? super Data> cachedDistanceFunction = DistanceFunctions
-						.cached(MTree.this.distanceFunction);
-				SplitResult<Data> splitResult = MTree.this.splitFunction.process(children.keySet(),
+				DistanceFunction<? super TimeIntervalMR> cachedDistanceFunction = DistanceFunctions.EUCLIDEAN;
+				SplitResult<TimeIntervalMR> splitResult = MTree.this.splitFunction.process(children.keySet(),
 						cachedDistanceFunction);
 
 				Node newNode0 = null;
 				Node newNode1 = null;
 				for (int i = 0; i < 2; ++i) {
-					Data promotedData = splitResult.promoted.get(i);
-					Set<Data> partition = splitResult.partitions.get(i);
+					TimeIntervalMR promotedData = splitResult.promoted.get(i);
+					Set<TimeIntervalMR> partition = splitResult.partitions.get(i);
 
 					Node newNode = newSplitNodeReplacement(promotedData);
-					for (Data Data : partition) {
-						IndexItem child = children.get(Data);
-						children.remove(Data);
-						double distance = cachedDistanceFunction.calculate(promotedData, Data);
+					for (TimeIntervalMR TimeIntervalMR : partition) {
+						IndexItem child = children.get(TimeIntervalMR);
+						children.remove(TimeIntervalMR);
+						double distance = cachedDistanceFunction.calculate(promotedData, TimeIntervalMR);
 						newNode.addChild(child, distance);
 					}
 
@@ -425,16 +429,17 @@ public class MTree {
 
 		}
 
-		protected Node newSplitNodeReplacement(Data Data) {
-			return leafness.newSplitNodeReplacement(Data);
+		protected Node newSplitNodeReplacement(TimeIntervalMR TimeIntervalMR) {
+			return leafness.newSplitNodeReplacement(TimeIntervalMR);
 		}
 
 		protected void addChild(IndexItem child, double distance) {
 			leafness.addChild(child, distance);
 		}
 
-		void removeData(Data Data, double distance) throws RootNodeReplacement, NodeUnderCapacity, DataNotFound {
-			doRemoveData(Data, distance);
+		void removeData(TimeIntervalMR TimeIntervalMR, double distance)
+				throws RootNodeReplacement, NodeUnderCapacity, DataNotFound {
+			doRemoveData(TimeIntervalMR, distance);
 			if (children.size() < getMinCapacity()) {
 				throw new NodeUnderCapacity();
 			}
@@ -466,7 +471,7 @@ public class MTree {
 		}
 
 		private void _checkChildMetrics(IndexItem child) {
-			double dist = MTree.this.distanceFunction.calculate(child.Data, this.Data);
+			double dist = MTree.this.distanceFunction.calculate(child.TimeIntervalMR, this.TimeIntervalMR);
 			assert child.distanceToParent == dist;
 			double sum = child.distanceToParent + child.radius;
 			assert sum <= this.radius;
@@ -485,14 +490,14 @@ public class MTree {
 		protected Node thisNode;
 	}
 
-	private interface Leafness<Data> {
-		void doAddData(Data Data, double distance);
+	private interface Leafness<TimeIntervalMR> {
+		void doAddData(TimeIntervalMR TimeIntervalMR, double distance);
 
 		void addChild(MTree.IndexItem child, double distance);
 
-		void doRemoveData(Data Data, double distance) throws DataNotFound;
+		void doRemoveData(TimeIntervalMR TimeIntervalMR, double distance) throws DataNotFound;
 
-		MTree.Node newSplitNodeReplacement(Data Data);
+		MTree.Node newSplitNodeReplacement(TimeIntervalMR TimeIntervalMR);
 
 		void _checkChildClass(MTree.IndexItem child);
 	}
@@ -542,30 +547,30 @@ public class MTree {
 		}
 	};
 
-	private class LeafNodeTrait extends NodeTrait implements Leafness<Data> {
+	private class LeafNodeTrait extends NodeTrait implements Leafness<TimeIntervalMR> {
 
-		public void doAddData(Data Data, double distance) {
-			Entry entry = thisNode.mtree().new Entry(Data);
-			assert !thisNode.children.containsKey(Data);
-			thisNode.children.put(Data, entry);
-			assert thisNode.children.containsKey(Data);
+		public void doAddData(TimeIntervalMR TimeIntervalMR, double distance) {
+			Entry entry = thisNode.mtree().new Entry(TimeIntervalMR);
+			assert !thisNode.children.containsKey(TimeIntervalMR);
+			thisNode.children.put(TimeIntervalMR, entry);
+			assert thisNode.children.containsKey(TimeIntervalMR);
 			thisNode.updateMetrics(entry, distance);
 		}
 
 		public void addChild(IndexItem child, double distance) {
-			assert !thisNode.children.containsKey(child.Data);
-			thisNode.children.put(child.Data, child);
-			assert thisNode.children.containsKey(child.Data);
+			assert !thisNode.children.containsKey(child.TimeIntervalMR);
+			thisNode.children.put(child.TimeIntervalMR, child);
+			assert thisNode.children.containsKey(child.TimeIntervalMR);
 			thisNode.updateMetrics(child, distance);
 		}
 
-		public Node newSplitNodeReplacement(Data Data) {
-			return thisNode.mtree().new LeafNode(Data);
+		public Node newSplitNodeReplacement(TimeIntervalMR TimeIntervalMR) {
+			return thisNode.mtree().new LeafNode(TimeIntervalMR);
 		}
 
 		@Override
-		public void doRemoveData(Data Data, double distance) throws DataNotFound {
-			if (thisNode.children.remove(Data) == null) {
+		public void doRemoveData(TimeIntervalMR TimeIntervalMR, double distance) throws DataNotFound {
+			if (thisNode.children.remove(TimeIntervalMR) == null) {
 				throw new DataNotFound();
 			}
 		}
@@ -575,9 +580,9 @@ public class MTree {
 		}
 	}
 
-	class NonLeafNodeTrait extends NodeTrait implements Leafness<Data> {
+	class NonLeafNodeTrait extends NodeTrait implements Leafness<TimeIntervalMR> {
 
-		public void doAddData(Data Data, double distance) {
+		public void doAddData(TimeIntervalMR TimeIntervalMR, double distance) {
 			class CandidateChild {
 				Node node;
 				double distance;
@@ -596,7 +601,8 @@ public class MTree {
 			for (IndexItem item : thisNode.children.values()) {
 				@SuppressWarnings("unchecked")
 				Node child = (Node) item;
-				double childDistance = thisNode.mtree().distanceFunction.calculate(child.Data, Data);
+				double childDistance = thisNode.mtree().distanceFunction.calculate(child.TimeIntervalMR,
+						TimeIntervalMR);
 				if (childDistance > child.radius) {
 					double radiusIncrease = childDistance - child.radius;
 					if (radiusIncrease < minRadiusIncreaseNeeded.metric) {
@@ -615,17 +621,18 @@ public class MTree {
 
 			Node child = chosen.node;
 			try {
-				child.addData(Data, chosen.distance);
+				child.addData(TimeIntervalMR, chosen.distance);
 				thisNode.updateRadius(child);
 			} catch (SplitNodeReplacement e) {
 				// Replace current child with new nodes
-				IndexItem placeholder = thisNode.children.remove(child.Data);
+				IndexItem placeholder = thisNode.children.remove(child.TimeIntervalMR);
 				assert placeholder != null;
 
 				for (int i = 0; i < e.newNodes.length; ++i) {
 					@SuppressWarnings("unchecked")
 					Node newChild = (Node) e.newNodes[i];
-					distance = thisNode.mtree().distanceFunction.calculate(thisNode.Data, newChild.Data);
+					distance = thisNode.mtree().distanceFunction.calculate(thisNode.TimeIntervalMR,
+							newChild.TimeIntervalMR);
 					thisNode.addChild(newChild, distance);
 				}
 			}
@@ -653,10 +660,10 @@ public class MTree {
 
 				newChild = cwd.child;
 				distance = cwd.distance;
-				if (thisNode.children.containsKey(newChild.Data)) {
+				if (thisNode.children.containsKey(newChild.TimeIntervalMR)) {
 					@SuppressWarnings("unchecked")
-					Node existingChild = (Node) thisNode.children.get(newChild.Data);
-					assert existingChild.Data.equals(newChild.Data);
+					Node existingChild = (Node) thisNode.children.get(newChild.TimeIntervalMR);
+					assert existingChild.TimeIntervalMR.equals(newChild.TimeIntervalMR);
 
 					// Transfer the _children_ of the newChild to the existingChild
 					for (IndexItem grandchild : newChild.children.values()) {
@@ -667,7 +674,7 @@ public class MTree {
 					try {
 						existingChild.checkMaxCapacity();
 					} catch (SplitNodeReplacement e) {
-						IndexItem placeholder = thisNode.children.remove(existingChild.Data);
+						IndexItem placeholder = thisNode.children.remove(existingChild.TimeIntervalMR);
 						assert placeholder != null;
 						if (placeholder == null) {
 							System.out.println(1);
@@ -675,34 +682,37 @@ public class MTree {
 						for (int i = 0; i < e.newNodes.length; ++i) {
 							@SuppressWarnings("unchecked")
 							Node newNode = (Node) e.newNodes[i];
-							distance = thisNode.mtree().distanceFunction.calculate(thisNode.Data, newNode.Data);
+							distance = thisNode.mtree().distanceFunction.calculate(thisNode.TimeIntervalMR,
+									newNode.TimeIntervalMR);
 							newChildren.addFirst(new ChildWithDistance(newNode, distance));
 						}
 					}
 				} else {
-					thisNode.children.put(newChild.Data, newChild);
+					thisNode.children.put(newChild.TimeIntervalMR, newChild);
 					thisNode.updateMetrics(newChild, distance);
 				}
 			}
 		}
 
-		public Node newSplitNodeReplacement(Data Data) {
-			return new InternalNode(Data);
+		public Node newSplitNodeReplacement(TimeIntervalMR TimeIntervalMR) {
+			return new InternalNode(TimeIntervalMR);
 		}
 
-		public void doRemoveData(Data Data, double distance) throws DataNotFound {
+		public void doRemoveData(TimeIntervalMR TimeIntervalMR, double distance) throws DataNotFound {
 			for (IndexItem childItem : thisNode.children.values()) {
 				@SuppressWarnings("unchecked")
 				Node child = (Node) childItem;
 				if (Math.abs(distance - child.distanceToParent) <= child.radius) {
-					double distanceToChild = thisNode.mtree().distanceFunction.calculate(Data, child.Data);
+					double distanceToChild = thisNode.mtree().distanceFunction.calculate(TimeIntervalMR,
+							child.TimeIntervalMR);
 					if (distanceToChild <= child.radius) {
 						try {
-							child.removeData(Data, distanceToChild);
+							child.removeData(TimeIntervalMR, distanceToChild);
 							thisNode.updateRadius(child);
 							return;
 						} catch (DataNotFound e) {
-							// If DataNotFound was thrown, then the Data was not found in the child
+							// If DataNotFound was thrown, then the TimeIntervalMR was not found in the
+							// child
 						} catch (NodeUnderCapacity e) {
 							Node expandedChild = balanceChildren(child);
 							thisNode.updateRadius(expandedChild);
@@ -732,7 +742,8 @@ public class MTree {
 				if (anotherChild == theChild)
 					continue;
 
-				double distance = thisNode.mtree().distanceFunction.calculate(theChild.Data, anotherChild.Data);
+				double distance = thisNode.mtree().distanceFunction.calculate(theChild.TimeIntervalMR,
+						anotherChild.TimeIntervalMR);
 				if (anotherChild.children.size() > anotherChild.getMinCapacity()) {
 					if (distance < distanceNearestDonor) {
 						distanceNearestDonor = distance;
@@ -749,12 +760,12 @@ public class MTree {
 			if (nearestDonor == null) {
 				// Merge
 				for (IndexItem grandchild : theChild.children.values()) {
-					double distance = thisNode.mtree().distanceFunction.calculate(grandchild.Data,
-							nearestMergeCandidate.Data);
+					double distance = thisNode.mtree().distanceFunction.calculate(grandchild.TimeIntervalMR,
+							nearestMergeCandidate.TimeIntervalMR);
 					nearestMergeCandidate.addChild(grandchild, distance);
 				}
 
-				IndexItem removed = thisNode.children.remove(theChild.Data);
+				IndexItem removed = thisNode.children.remove(theChild.TimeIntervalMR);
 				assert removed != null;
 				return nearestMergeCandidate;
 			} else {
@@ -763,14 +774,15 @@ public class MTree {
 				IndexItem nearestGrandchild = null;
 				double nearestGrandchildDistance = Double.POSITIVE_INFINITY;
 				for (IndexItem grandchild : nearestDonor.children.values()) {
-					double distance = thisNode.mtree().distanceFunction.calculate(grandchild.Data, theChild.Data);
+					double distance = thisNode.mtree().distanceFunction.calculate(grandchild.TimeIntervalMR,
+							theChild.TimeIntervalMR);
 					if (distance < nearestGrandchildDistance) {
 						nearestGrandchildDistance = distance;
 						nearestGrandchild = grandchild;
 					}
 				}
 
-				IndexItem placeholder = nearestDonor.children.remove(nearestGrandchild.Data);
+				IndexItem placeholder = nearestDonor.children.remove(nearestGrandchild.TimeIntervalMR);
 				assert placeholder != null;
 				if (placeholder == null) {
 					System.out.println(1);
@@ -788,13 +800,13 @@ public class MTree {
 
 	private class RootLeafNode extends Node {
 
-		private RootLeafNode(Data Data) {
-			super(Data, new RootNodeTrait(), new LeafNodeTrait());
+		private RootLeafNode(TimeIntervalMR TimeIntervalMR) {
+			super(TimeIntervalMR, new RootNodeTrait(), new LeafNodeTrait());
 		}
 
-		void removeData(Data Data, double distance) throws RootNodeReplacement, DataNotFound {
+		void removeData(TimeIntervalMR TimeIntervalMR, double distance) throws RootNodeReplacement, DataNotFound {
 			try {
-				super.removeData(Data, distance);
+				super.removeData(TimeIntervalMR, distance);
 			} catch (NodeUnderCapacity e) {
 				assert children.isEmpty();
 				throw new RootNodeReplacement(null);
@@ -812,27 +824,28 @@ public class MTree {
 
 	private class RootNode extends Node {
 
-		private RootNode(Data Data) {
-			super(Data, new RootNodeTrait(), new NonLeafNodeTrait());
+		private RootNode(TimeIntervalMR TimeIntervalMR) {
+			super(TimeIntervalMR, new RootNodeTrait(), new NonLeafNodeTrait());
 		}
 
-		void removeData(Data Data, double distance) throws RootNodeReplacement, NodeUnderCapacity, DataNotFound {
+		void removeData(TimeIntervalMR TimeIntervalMR, double distance)
+				throws RootNodeReplacement, NodeUnderCapacity, DataNotFound {
 			try {
-				super.removeData(Data, distance);
+				super.removeData(TimeIntervalMR, distance);
 			} catch (NodeUnderCapacity e) {
 				// Promote the only child to root
 				@SuppressWarnings("unchecked")
 				Node theChild = (Node) (children.values().iterator().next());
 				Node newRoot;
 				if (theChild instanceof MTree.InternalNode) {
-					newRoot = new RootNode(theChild.Data);
+					newRoot = new RootNode(theChild.TimeIntervalMR);
 				} else {
 					assert theChild instanceof MTree.LeafNode;
-					newRoot = new RootLeafNode(theChild.Data);
+					newRoot = new RootLeafNode(theChild.TimeIntervalMR);
 				}
 
 				for (IndexItem grandchild : theChild.children.values()) {
-					distance = MTree.this.distanceFunction.calculate(newRoot.Data, grandchild.Data);
+					distance = MTree.this.distanceFunction.calculate(newRoot.TimeIntervalMR, grandchild.TimeIntervalMR);
 					newRoot.addChild(grandchild, distance);
 				}
 				theChild.children.clear();
@@ -853,21 +866,21 @@ public class MTree {
 	}
 
 	private class InternalNode extends Node {
-		private InternalNode(Data Data) {
-			super(Data, new NonRootNodeTrait(), new NonLeafNodeTrait());
+		private InternalNode(TimeIntervalMR TimeIntervalMR) {
+			super(TimeIntervalMR, new NonRootNodeTrait(), new NonLeafNodeTrait());
 		}
 	};
 
 	private class LeafNode extends Node {
 
-		public LeafNode(Data Data) {
-			super(Data, new NonRootNodeTrait(), new LeafNodeTrait());
+		public LeafNode(TimeIntervalMR TimeIntervalMR) {
+			super(TimeIntervalMR, new NonRootNodeTrait(), new LeafNodeTrait());
 		}
 	}
 
 	private class Entry extends IndexItem {
-		private Entry(Data Data) {
-			super(Data);
+		private Entry(TimeIntervalMR TimeIntervalMR) {
+			super(TimeIntervalMR);
 		}
 	}
 }
