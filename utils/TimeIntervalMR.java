@@ -3,10 +3,8 @@ package utils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
-
 import evaluation.Settings;
-import poi.QuadTree;
+import poi.QuadTree1;
 
 public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
 
@@ -35,32 +33,25 @@ public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
         return center[index];
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof TimeIntervalMR) {
-            TimeIntervalMR that = (TimeIntervalMR) obj;
-            if (this.dimensions() != that.dimensions()) {
-                return false;
-            }
-            if (this.hashCode() != that.hashCode()) {
-                return false;
-            }
-            if (this.center != that.center) {
-                return false;
-            }
-            if (this.objectID != that.objectID) {
-                return false;
-            }
-            return true;
-        } else {
-            return false;
-        }
-    }
+    // @Override
+    // public boolean equals(Object obj) {
+    // if (obj instanceof TimeIntervalMR) {
+    // TimeIntervalMR that = (TimeIntervalMR) obj;
+    // if (this.center != that.center) {
+    // return false;
+    // }
+    // if (this.objectID != that.objectID) {
+    // return false;
+    // }
+    // return true;
+    // } else {
+    // return false;
+    // }
+    // }
 
     @Override
     public int compareTo(TimeIntervalMR that) {
-        int dimensions = Math.min(this.dimensions(), that.dimensions());
-        for (int i = 0; i < dimensions; i++) {
+        for (int i = 0; i < 2; i++) {
             double v1 = this.center[i];
             double v2 = that.center[i];
             if (v1 > v2) {
@@ -70,19 +61,10 @@ public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
                 return -1;
             }
         }
-
-        if (this.dimensions() > dimensions) {
-            return +1;
-        }
-
-        if (that.dimensions() > dimensions) {
-            return -1;
-        }
-
         return 0;
     }
 
-    public TimeIntervalMR(Location curLocation, Location nextLocation, double maxSpeed, QuadTree qTree) {
+    public TimeIntervalMR(Location curLocation, Location nextLocation, double maxSpeed, QuadTree1 qTree) {
         assert curLocation.objectID == nextLocation.objectID;
         this.objectID = curLocation.objectID;
         this.curLocation = curLocation;
@@ -95,7 +77,7 @@ public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
     }
 
     /* get POIs within this motion range */
-    // public ArrayList<Point> POIsWithinThis(QuadTree qTree) {
+    // public ArrayList<Point> POIsWithinThis(QuadTree1 qTree) {
     // double[] mbr = this.getEllipseMBR();
     // List<Point> POIsCandidate = qTree.findAll(mbr[0], mbr[2], mbr[1], mbr[3]);
     // ArrayList<Point> res = new ArrayList<>();
@@ -110,30 +92,28 @@ public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
 
     // Time-interval pruning
     public double upperBound1To(TimeIntervalMR that) {
-        HashSet<Point> poiThisMR = this.POIs;
-        HashSet<Point> poiThatMR = that.POIs;
-        HashSet<Point> intersection = new HashSet(poiThisMR);
+        // HashSet<Point> poiThisMR = this.POIs;
+        // HashSet<Point> poiThatMR = that.POIs;
+        // ArrayList<Point> intersection = new ArrayList(poiThisMR);
 
         double simUB = 0;
-        intersection.retainAll(poiThatMR);
-        int maxIntersectionNB = intersection.size();
+        // intersection.retainAll(poiThatMR);
+        // int maxIntersectionNB = intersection.size();
         int m = this.timePointMRs.size();
-        if (poiThisMR.size() + poiThatMR.size() > 100) {
-            System.out.println(poiThisMR.size() + poiThatMR.size() + "/" +
-                    maxIntersectionNB);
-        }
-        // if (maxIntersectionNB == 0) {
-        // return 0;
-        // }
         for (int i = 0; i < m; i++) {
-            TimePointMR tpThis = this.timePointMRs.get(i);
-            TimePointMR tpThat = that.timePointMRs.get(i);
-            ArrayList<Point> poiThis = tpThis.POIs;
-            ArrayList<Point> poiThat = tpThat.POIs;
-            if (poiThis.size() == 0 || poiThat.size() == 0) {
+            TimePointMR mr1 = this.timePointMRs.get(i);
+            TimePointMR mr2 = that.timePointMRs.get(i);
+            if (mr1.equals(mr2)) {
+                simUB += 1;
                 continue;
             }
-            simUB += Math.min(1, (maxIntersectionNB / poiThis.size()) * (maxIntersectionNB / poiThat.size()));
+            if (mr1.POI_NB == 0 || mr2.POI_NB == 0) {
+                continue;
+            }
+            // simUB += Math.min(1, (maxIntersectionNB / poiThis.size()) *
+            // (maxIntersectionNB /
+            // poiThat.size()));
+            simUB += 1;
         }
         return simUB / m;
     }
@@ -143,22 +123,34 @@ public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
         double simUB = 0;
         int m = this.timePointMRs.size();
         for (int i = 0; i < m; i++) {
-            TimePointMR tpThis = this.timePointMRs.get(i);
-            TimePointMR tpThat = that.timePointMRs.get(i);
-            ArrayList<Point> poiThis = tpThis.POIs;
-            ArrayList<Point> poiThat = tpThat.POIs;
-            int thisSize = poiThis.size();
-            int thatSize = poiThat.size();
-            if (thisSize == 0 || thatSize == 0) {
+            TimePointMR mr1 = this.timePointMRs.get(i);
+            TimePointMR mr2 = that.timePointMRs.get(i);
+            if (mr1.equals(mr2)) {
+                simUB += 1;
                 continue;
             }
-            simUB += Math.min(thisSize, thatSize) / Math.max(thisSize, thatSize);
+            if (mr1.POI_NB == 0 || mr2.POI_NB == 0) {
+                continue;
+            }
+            // if (mr1.POI_NB != 1) {
+            // System.out.println(Math.min(mr1.POI_NB, mr2.POI_NB) + "/" +
+            // Math.max(mr1.POI_NB, mr2.POI_NB));
+            // System.out.println(simUB);
+            // }
+            double minSize = 0;
+            int maxSize = 0;
+            if (mr1.POI_NB > mr2.POI_NB) {
+                minSize = mr2.POI_NB;
+                maxSize = mr1.POI_NB;
+            }
+            simUB += minSize / maxSize;
         }
+
         return simUB / m;
     }
 
     // the exact intersection similarity to another time-interval motion range
-    public double simTo(TimeIntervalMR that, QuadTree qTree) {
+    public double simTo(TimeIntervalMR that) {
         assert this.timePointMRs.size() == that.timePointMRs.size();
         double sim = 0;
         int m = this.timePointMRs.size();
@@ -167,18 +159,24 @@ public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
             TimePointMR tpThat = that.timePointMRs.get(i);
             ArrayList<Point> poiThis = tpThis.POIs;
             ArrayList<Point> poiThat = tpThat.POIs;
-            if (poiThis.size() == 0 || poiThat.size() == 0) {
-                break;
+            int thisSize = tpThis.POI_NB;
+            int thatSize = tpThat.POI_NB;
+            if (tpThis.equals(tpThat)) {
+                sim += 1;
+                continue;
+            }
+            if (thisSize == 0 || thatSize == 0) {
+                continue;
             }
             ArrayList<Point> intersection = new ArrayList<>(poiThis);
             intersection.retainAll(poiThat);
-            sim += (intersection.size() / poiThis.size()) * (intersection.size() / poiThat.size());
+            sim += Math.pow(intersection.size(), 2) / (thisSize * thatSize);
         }
         return sim / m;
     }
 
     /* generate a set of time-point motion ranges of size 'intervalNum' */
-    public ArrayList<TimePointMR> generateTimePointMRs(int intervalNum, QuadTree qTree) {
+    public ArrayList<TimePointMR> generateTimePointMRs(int intervalNum, QuadTree1 qTree) {
         for (int i = 1; i < intervalNum + 2 - 1; i++) {
             // get time-point ranges of the two objects at several time points
             double Ax = curLocation.x;

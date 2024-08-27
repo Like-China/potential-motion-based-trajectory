@@ -2,13 +2,13 @@ package evaluation;
 
 import java.util.*;
 
-import balltree.BallNode;
-import balltree.BallTree;
+import balltree.TernaryBallNode;
+import balltree.TernaryBallTree;
 import poi.QuadTree;
 import utils.NN;
 import utils.TimeIntervalMR;
 
-public class BJAlg {
+public class HBJAlg {
     // index construction time / filtering time
     public long cTime = 0;
     public long nnJoinTime = 0;
@@ -17,41 +17,47 @@ public class BJAlg {
     public int searchCount = 0;
     public int nodeAccess = 0;
     // the repartition threshold
+    public double repartirionRatio = 0;
     public int minLeafNB = 0;
     // pruning count
-    public int candidateCount = 0;
+    public double pruneRatio = 0;
     public double upper1PruningCount = 0;
     public double upper2PruningCount = 0;
     public double nnPruningCount = 0;
+    public int count = 0;
 
-    public BJAlg(TimeIntervalMR[] MR_A, TimeIntervalMR[] MR_B, int minLeafNB) {
+    public HBJAlg(TimeIntervalMR[] MR_A, TimeIntervalMR[] MR_B, double repartirionRatio,
+            int minLeafNB) {
+        this.repartirionRatio = repartirionRatio;
         this.minLeafNB = minLeafNB;
     }
 
-    public ArrayList<TimeIntervalMR> tbSearch(TimeIntervalMR mra, BallTree bt, BallNode root,
-            double simThreshold) {
+    public ArrayList<TimeIntervalMR> tbSearch(TimeIntervalMR mra, TernaryBallTree bt, TernaryBallNode root,
+            double simThreshold, boolean useUB) {
         ArrayList<TimeIntervalMR> res = new ArrayList<>();
         // pre-checking to get candidates
         ArrayList<TimeIntervalMR> candidates = bt.searchRange(root, mra);
-        candidateCount += candidates.size();
         if (mra.POIs.size() == 0) {
             return res;
         }
         for (TimeIntervalMR c : candidates) {
+            if (useUB) {
+                double simUpper = mra.upperBound1To(c);
+                if (simUpper < simThreshold) {
+                    upper1PruningCount += 1;
+                    continue;
+                }
+                simUpper = mra.upperBound2To(c);
+                if (simUpper < simThreshold) {
+                    upper1PruningCount += 1;
+                    continue;
+                }
+            }
 
-            double simUpper = mra.upperBound1To(c);
-            if (simUpper < simThreshold) {
-                upper1PruningCount += 1;
-                continue;
-            }
-            simUpper = mra.upperBound2To(c);
-            if (simUpper < simThreshold) {
-                upper1PruningCount += 1;
-                continue;
-            }
             searchCount += 1;
             double sim = mra.simTo(c);
             if (sim >= simThreshold) {
+                // System.out.println(simUpper + "/" + sim + "/" + simThreshold);
                 res.add(c);
             }
         }
@@ -59,18 +65,18 @@ public class BJAlg {
     }
 
     // Threshold-based Join
-    public int tbJoin(TimeIntervalMR[] MR_A, TimeIntervalMR[] MR_B, double simThreshold) {
+    public int tbJoin(TimeIntervalMR[] MR_A, TimeIntervalMR[] MR_B, double simThreshold, boolean useUB) {
         long t1 = System.currentTimeMillis();
 
-        BallTree bt = new BallTree(minLeafNB, MR_B);
-        BallNode root = bt.buildBallTree();
+        TernaryBallTree bt = new TernaryBallTree(minLeafNB, MR_B, repartirionRatio);
+        TernaryBallNode root = bt.buildBallTree();
         cTime = System.currentTimeMillis() - t1;
 
         int matchNB = 0;
         int i = 0;
         for (TimeIntervalMR mra : MR_A) {
             i++;
-            ArrayList<TimeIntervalMR> res = tbSearch(mra, bt, root, simThreshold);
+            ArrayList<TimeIntervalMR> res = tbSearch(mra, bt, root, simThreshold, useUB);
             matchNB += res.size();
         }
         long t2 = System.currentTimeMillis();
@@ -82,6 +88,7 @@ public class BJAlg {
         // %d",
         // bt.constructCount, bt.searchCount / MR_A.length);
         // System.out.println(info);
+        pruneRatio = (double) (MR_A.length * MR_B.length - searchCount) / (MR_A.length * MR_B.length);
         nodeAccess = bt.searchCount;
         return matchNB;
     }
@@ -89,8 +96,8 @@ public class BJAlg {
     public PriorityQueue<NN> kJoin(TimeIntervalMR[] MR_A, TimeIntervalMR[] MR_B, int k, boolean isSelfJoin) {
         long t1 = System.currentTimeMillis();
 
-        BallTree bt = new BallTree(minLeafNB, MR_B);
-        BallNode root = bt.buildBallTree();
+        TernaryBallTree bt = new TernaryBallTree(minLeafNB, MR_B, repartirionRatio);
+        TernaryBallNode root = bt.buildBallTree();
         cTime = System.currentTimeMillis() - t1;
 
         PriorityQueue<NN> nnCandidate = new PriorityQueue<>(Comp.NNComparator1);
@@ -126,7 +133,7 @@ public class BJAlg {
             } else {
                 double minKsim = res.peek().sim;
                 // if (nCandidate.simUpper1 < minKsim) {
-                // break;
+                // System.out.println();
                 // }
                 if (sim > minKsim) {
                     res.poll();

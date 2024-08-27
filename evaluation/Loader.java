@@ -3,6 +3,7 @@ package evaluation;
 import java.util.*;
 
 import poi.QuadTree;
+import poi.QuadTree1;
 import utils.*;
 import java.io.BufferedReader;
 import java.io.File;
@@ -27,7 +28,7 @@ public class Loader {
     public double maxX = -Double.MAX_VALUE;
     public double maxY = -Double.MAX_VALUE;
     // POI index
-    public QuadTree qStatic = new QuadTree();
+    public QuadTree1 qTree;
 
     public Loader(int dataNB, int POINB) {
         long t1 = System.currentTimeMillis();
@@ -46,10 +47,6 @@ public class Loader {
                 maxY = maxY < l.y ? l.y : maxY;
             }
         }
-        System.out.println("Lon range: " + minLon + " -> " + maxLon);
-        System.out.println("Lat range: " + minLat + " -> " + maxLat);
-        System.out.println("X   range: " + minX + " -> " + maxX + ": " + (maxX - minX));
-        System.out.println("Y   range: " + minY + " -> " + maxY + ": " + (maxY - minY));
 
         // generate a set of random POI locations within (minX, maxX, minY, maxY)
         points = generateRandomPoints(minX, minY, maxX, maxY, POINB);
@@ -57,25 +54,38 @@ public class Loader {
         // QuadTree<Double> qDynamic = new QuadTree<>();
         // qDynamic.DYNAMIC_MAX_OBJECTS = true;
         // qDynamic.MAX_OBJ_TARGET_EXPONENT = 0.5;
-        qStatic.LEAF_MAX_OBJECTS = 100;
+        qTree = new QuadTree1(minX, minY, maxX, maxY);
         for (Point p : points) {
-            qStatic.place(p.x, p.y);
+            // qTree.place(p.x, p.y);
+            qTree.insert(p);
+
         }
 
         long t2 = System.currentTimeMillis();
-        System.out.println("Generated POIs: " + points.size());
-        System.out.println("Load data time cost (ms): " + (t2 - t1));
-        System.out.println();
+        // System.out.println("Lon range: " + minLon + " -> " + maxLon);
+        // System.out.println("Lat range: " + minLat + " -> " + maxLat);
+        // System.out.println("X range: " + minX + " -> " + maxX + ": " + (maxX -
+        // minX));
+        // System.out.println("Y range: " + minY + " -> " + maxY + ": " + (maxY -
+        // minY));
+        // System.out.println("Generated POIs: " + points.size());
+        // System.out.println("Load data time cost (ms): " + (t2 - t1));
+        // System.out.println();
 
     }
 
     public HashSet<Point> generateRandomPoints(double minX, double minY, double maxX, double maxY, int n) {
-        Random random = new Random(0);
+        Random random = new Random(10);
         HashSet<Point> points = new HashSet<>();
+        HashSet<Double> values = new HashSet<>();
         while (points.size() < n) {
             double x = minX + (maxX - minX) * random.nextDouble();
             double y = minY + (maxY - minY) * random.nextDouble();
-            points.add(new Point(x, y));
+            if (!values.contains(x + y)) {
+                points.add(new Point(x, y));
+                values.add(x + y);
+            }
+
         }
 
         return points;
@@ -119,7 +129,8 @@ public class Loader {
             System.out.println("No such dataset!!");
             return;
         }
-        System.out.printf("Dataset name: %s Trajectory Size: %d \n", Settings.data, trjs.size());
+        // System.out.printf("Dataset name: %s Trajectory Size: %d \n", Settings.data,
+        // trjs.size());
     }
 
     public void getGeolifeTrajectory(int readObjNum) {

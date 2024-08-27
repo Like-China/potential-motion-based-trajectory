@@ -1,0 +1,58 @@
+
+
+Vary Cardinality  expNB@10 objNB@2000 poiNB@400000 theta@0.500000   start@0 end@1 k@300
+tbJoin_times: [50.5, 50.9, 42.3]
+kJoin_times: [36.7, 13.5, 0.0]
+ctimes: [5.7, 2.9, 2.3]
+Prune ratio: 0.9853514999999999,0.9994417999999999
+Access: 153328.0,133780.0
+Pruning Enhancement: 0.961893709253507
+
+Vary Cardinality  expNB@10 objNB@4000 poiNB@400000 theta@0.500000   start@0 end@1 k@300
+tbJoin_times: [129.1, 31.6, 30.9]
+kJoin_times: [117.5, 34.2, 0.0]
+ctimes: [12.8, 2.9, 2.8]
+Prune ratio: 0.9921550000000001,0.9997318125
+Access: 409151.0,373806.0
+Pruning Enhancement: 0.9658142128744421
+
+Vary Cardinality  expNB@10 objNB@6000 poiNB@400000 theta@0.500000   start@0 end@1 k@300
+tbJoin_times: [286.8, 71.3, 57.4]
+kJoin_times: [271.1, 65.5, 0.0]
+ctimes: [11.2, 4.6, 4.8]
+Prune ratio: 0.9921180555555555,0.9998234777777778
+Access: 959671.0,845028.0
+Pruning Enhancement: 0.9776042290748899
+
+Vary Cardinality  expNB@10 objNB@8000 poiNB@400000 theta@0.500000   start@0 end@1 k@300
+tbJoin_times: [586.8, 173.4, 106.9]
+kJoin_times: [563.1, 128.3, 0.0]
+ctimes: [15.0, 6.3, 6.2]
+Prune ratio: 0.99176315625,0.9998646250000001
+Access: 1689791.0,1498479.0
+Pruning Enhancement: 0.9835646997674321
+
+Vary Cardinality  expNB@10 objNB@2000 poiNB@400000 theta@0.500000   start@0 end@1 k@300
+tbJoin_times: [45.2, 16.0, 11.3]
+kJoin_times: [36.5, 14.1, 0.0]
+ctimes: [5.5, 3.0, 2.2]
+Prune ratio: 0.9853514999999999,0.9994425000000001
+Access: 153328.0,133780.0
+Pruning Enhancement: 0.9619414957162847
+
+Vary Cardinality  expNB@10 objNB@4000 poiNB@400000 theta@0.500000   start@0 end@1 k@300
+tbJoin_times: [148.9, 32.6, 25.8]
+kJoin_times: [110.4, 29.7, 0.0]
+ctimes: [7.0, 2.7, 2.7]
+Prune ratio: 0.9921550000000001,0.999731075
+Access: 409151.0,373806.0
+Pruning Enhancement: 0.9657202039515613
+
+Vary Cardinality  expNB@10 objNB@6000 poiNB@400000 theta@0.500000   start@0 end@1 k@300
+tbJoin_times: [286.7, 85.9, 62.1]
+kJoin_times: [273.5, 71.8, 0.0]
+ctimes: [10.7, 4.6, 4.3]
+Prune ratio: 0.9921180555555555,0.99982365
+Access: 959671.0,845028.0
+Pruning Enhancement: 0.9776260792951541
+

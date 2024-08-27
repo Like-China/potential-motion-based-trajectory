@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import evaluation.Settings;
-import poi.QuadTree;
+import poi.QuadTree1;
 
 public class Trajectory {
 
@@ -30,7 +30,7 @@ public class Trajectory {
     }
 
     // Given a time period [i,j], generate MR(o,I), I=[i,j]
-    public TimeIntervalMR getIntervalMR(int i, int j, QuadTree qTree) {
+    public TimeIntervalMR getIntervalMR(int i, int j, QuadTree1 qTree) {
         Location cur = locationSeq.get(i);
         Location next = locationSeq.get(j);
         TimeIntervalMR bead = new TimeIntervalMR(cur, next, maxSpeed, qTree);
