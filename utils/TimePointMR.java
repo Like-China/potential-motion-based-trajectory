@@ -2,7 +2,7 @@ package utils;
 
 import java.util.ArrayList;
 
-import poi.QuadTree1;
+import poi.QuadTree;
 
 public class TimePointMR {
     // The time-point motion range is the intersection region of two circles
@@ -17,7 +17,7 @@ public class TimePointMR {
     public int POI_NB = 0;
 
     // define a time-point interval based two circles (Ax,Ay, r1) and (Bx,By,r2)
-    public TimePointMR(double Ax, double Ay, double Bx, double By, double r1, double r2, QuadTree1 qTree) {
+    public TimePointMR(double Ax, double Ay, double Bx, double By, double r1, double r2, QuadTree qTree) {
         this.Ax = Ax;
         this.Ay = Ay;
         this.Bx = Bx;
@@ -50,7 +50,7 @@ public class TimePointMR {
         return true;
     }
 
-    public ArrayList<Point> POIsWithinThis(QuadTree1 qTree) {
+    public ArrayList<Point> POIsWithinThis(QuadTree qTree) {
         ArrayList<Point> POIsCandidate = qTree.query(Ax - r1, Ay - r1, Ax + r1, Ay + r1);
         ArrayList<Point> POIsCandidate1 = qTree.query(Bx - r2, By - r2, Bx + r2, By + r2);
         POIsCandidate.retainAll(POIsCandidate1);

@@ -3,7 +3,6 @@ package evaluation;
 import java.util.*;
 
 import poi.QuadTree;
-import poi.QuadTree1;
 import utils.*;
 import java.io.BufferedReader;
 import java.io.File;
@@ -28,7 +27,7 @@ public class Loader {
     public double maxX = -Double.MAX_VALUE;
     public double maxY = -Double.MAX_VALUE;
     // POI index
-    public QuadTree1 qTree;
+    public QuadTree qTree;
 
     public Loader(int dataNB, int POINB) {
         long t1 = System.currentTimeMillis();
@@ -51,12 +50,8 @@ public class Loader {
         // generate a set of random POI locations within (minX, maxX, minY, maxY)
         points = generateRandomPoints(minX, minY, maxX, maxY, POINB);
         // construct quadtree for quickly retrieve POIs within a given motion range
-        // QuadTree<Double> qDynamic = new QuadTree<>();
-        // qDynamic.DYNAMIC_MAX_OBJECTS = true;
-        // qDynamic.MAX_OBJ_TARGET_EXPONENT = 0.5;
-        qTree = new QuadTree1(minX, minY, maxX, maxY);
+        qTree = new QuadTree(minX, minY, maxX, maxY);
         for (Point p : points) {
-            // qTree.place(p.x, p.y);
             qTree.insert(p);
 
         }
@@ -69,13 +64,13 @@ public class Loader {
         // System.out.println("Y range: " + minY + " -> " + maxY + ": " + (maxY -
         // minY));
         // System.out.println("Generated POIs: " + points.size());
-        // System.out.println("Load data time cost (ms): " + (t2 - t1));
-        // System.out.println();
+        System.out.println("Load data time cost (ms): " + (t2 - t1));
+        System.out.println();
 
     }
 
     public HashSet<Point> generateRandomPoints(double minX, double minY, double maxX, double maxY, int n) {
-        Random random = new Random(10);
+        Random random = new Random(1);
         HashSet<Point> points = new HashSet<>();
         HashSet<Double> values = new HashSet<>();
         while (points.size() < n) {
@@ -174,6 +169,16 @@ public class Loader {
                         if (traj.size() >= Settings.tsNB) {
                             break;
                         }
+                        // if (traj.size() == Settings.tsNB) {
+                        // Trajectory newTrj = new Trajectory(id, traj);
+                        // traj = new ArrayList<>();
+                        // if (!newTrj.isDelete()) {
+                        // trjs.add(newTrj);
+                        // id++;
+                        // }
+                        // if (id >= readObjNum)
+                        // break;
+                        // }
                     }
                 }
                 Trajectory newTrj = new Trajectory(id, traj);
@@ -245,7 +250,7 @@ public class Loader {
         A = new ArrayList<>();
         B = new ArrayList<>();
         int size = trjs.size();
-        assert size >= dataNB : "Lack of data!";
+        assert size >= dataNB : "Lack of data! The maximum size is " + size;
         for (int i = 0; i < dataNB; i++) {
             Trajectory trj = trjs.get(i);
             A.add(trj);

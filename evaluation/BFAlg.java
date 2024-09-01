@@ -3,7 +3,6 @@ package evaluation;
 import java.util.ArrayList;
 import java.util.Comparator;
 
-import poi.QuadTree;
 import utils.NN;
 import utils.TimeIntervalMR;
 

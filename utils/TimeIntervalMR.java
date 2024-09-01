@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import evaluation.Settings;
-import poi.QuadTree1;
+import poi.QuadTree;
 
 public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
 
@@ -64,7 +64,8 @@ public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
         return 0;
     }
 
-    public TimeIntervalMR(Location curLocation, Location nextLocation, double maxSpeed, QuadTree1 qTree) {
+    public TimeIntervalMR(Location curLocation, Location nextLocation, double maxSpeed, QuadTree qTree,
+            int intervalNum) {
         assert curLocation.objectID == nextLocation.objectID;
         this.objectID = curLocation.objectID;
         this.curLocation = curLocation;
@@ -72,7 +73,7 @@ public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
         this.maxSpeed = maxSpeed;
         this.angle = Math.atan2(nextLocation.y - curLocation.y, nextLocation.x - curLocation.x);
         location2ellipse();
-        timePointMRs = generateTimePointMRs(Settings.intervalNum, qTree);
+        timePointMRs = generateTimePointMRs(intervalNum, qTree);
         // POIs = POIsWithinThis(qTree);
     }
 
@@ -132,18 +133,16 @@ public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
             if (mr1.POI_NB == 0 || mr2.POI_NB == 0) {
                 continue;
             }
-            // if (mr1.POI_NB != 1) {
-            // System.out.println(Math.min(mr1.POI_NB, mr2.POI_NB) + "/" +
-            // Math.max(mr1.POI_NB, mr2.POI_NB));
-            // System.out.println(simUB);
-            // }
             double minSize = 0;
             int maxSize = 0;
             if (mr1.POI_NB > mr2.POI_NB) {
                 minSize = mr2.POI_NB;
                 maxSize = mr1.POI_NB;
+            } else {
+                minSize = mr1.POI_NB;
+                maxSize = mr2.POI_NB;
             }
-            simUB += minSize / maxSize;
+            simUB += (minSize / maxSize);
         }
 
         return simUB / m;
@@ -176,7 +175,7 @@ public class TimeIntervalMR implements Comparable<TimeIntervalMR> {
     }
 
     /* generate a set of time-point motion ranges of size 'intervalNum' */
-    public ArrayList<TimePointMR> generateTimePointMRs(int intervalNum, QuadTree1 qTree) {
+    public ArrayList<TimePointMR> generateTimePointMRs(int intervalNum, QuadTree qTree) {
         for (int i = 1; i < intervalNum + 2 - 1; i++) {
             // get time-point ranges of the two objects at several time points
             double Ax = curLocation.x;

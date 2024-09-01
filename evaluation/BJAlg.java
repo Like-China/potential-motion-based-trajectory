@@ -4,7 +4,6 @@ import java.util.*;
 
 import balltree.BallNode;
 import balltree.BallTree;
-import poi.QuadTree;
 import utils.NN;
 import utils.TimeIntervalMR;
 

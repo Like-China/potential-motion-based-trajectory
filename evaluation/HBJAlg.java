@@ -4,7 +4,6 @@ import java.util.*;
 
 import balltree.TernaryBallNode;
 import balltree.TernaryBallTree;
-import poi.QuadTree;
 import utils.NN;
 import utils.TimeIntervalMR;
 
@@ -14,7 +13,7 @@ public class HBJAlg {
     public long nnJoinTime = 0;
     public long rangeJoinTime = 0;
     // the number of node accesses
-    public int searchCount = 0;
+    public double searchCount = 0;
     public int nodeAccess = 0;
     // the repartition threshold
     public double repartirionRatio = 0;
@@ -43,13 +42,19 @@ public class HBJAlg {
         for (TimeIntervalMR c : candidates) {
             if (useUB) {
                 double simUpper = mra.upperBound1To(c);
+
                 if (simUpper < simThreshold) {
                     upper1PruningCount += 1;
                     continue;
                 }
-                simUpper = mra.upperBound2To(c);
+
                 if (simUpper < simThreshold) {
-                    upper1PruningCount += 1;
+                    upper2PruningCount += 1;
+                    simUpper = mra.upperBound2To(c);
+                    System.out.println(mra);
+                    System.out.println(c);
+                    System.out.println(simUpper);
+                    System.out.println();
                     continue;
                 }
             }
@@ -82,10 +87,9 @@ public class HBJAlg {
         long t2 = System.currentTimeMillis();
         rangeJoinTime = t2 - t1;
         // System.out.println("\n-- Upper 1 Pruning Count: " + upper1PruningCount + "
-        // Upper 1 Pruning Ratio: "
-        // + (upper1PruningCount / candidateCount) + " Search Count: " + searchCount);
-        // String info = String.format("Construction Node Access: %d Search Node Access:
-        // %d",
+        // Search Count: " + searchCount);
+        // String info = String.format("Construction Node Access: %d Search Node
+        // Access:%d",
         // bt.constructCount, bt.searchCount / MR_A.length);
         // System.out.println(info);
         pruneRatio = (double) (MR_A.length * MR_B.length - searchCount) / (MR_A.length * MR_B.length);

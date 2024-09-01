@@ -3,7 +3,6 @@ package evaluation;
 import java.util.*;
 
 import mtree.MTreeClass;
-import poi.QuadTree;
 import utils.*;
 
 public class MJAlg {
